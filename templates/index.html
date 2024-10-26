@@ -90,4 +90,56 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Task Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTaskForm">
+                    <input type="hidden" id="editTaskId">
+                    <div class="mb-3">
+                        <label for="editTaskTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="editTaskTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editTaskDescription"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskCategory" class="form-label">Category</label>
+                        <select class="form-select" id="editTaskCategory">
+                            <option value="Work">Work</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Health">Health</option>
+                            <option value="Learning">Learning</option>
+                            <option value="Shopping">Shopping</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskDueDate" class="form-label">Due Date</label>
+                        <input type="date" class="form-control" id="editTaskDueDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskQuadrant" class="form-label">Quadrant</label>
+                        <select class="form-select" id="editTaskQuadrant">
+                            <option value="urgent-important">Urgent & Important</option>
+                            <option value="not-urgent-important">Not Urgent & Important</option>
+                            <option value="urgent-not-important">Urgent & Not Important</option>
+                            <option value="not-urgent-not-important">Not Urgent & Not Important</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateTask()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -114,10 +114,17 @@ def create_task():
 def update_task(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.json
+    
     if 'completed' in data:
         task.completed = data['completed']
-    if 'quadrant' in data:
-        task.quadrant = data['quadrant']
+    else:
+        task.title = data.get('title', task.title)
+        task.description = data.get('description', task.description)
+        task.category = data.get('category', task.category)
+        task.quadrant = data.get('quadrant', task.quadrant)
+        if 'due_date' in data:
+            task.due_date = datetime.fromisoformat(data['due_date'])
+    
     db.session.commit()
     return jsonify({
         'id': task.id,
