@@ -51,6 +51,8 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 300px;
+    position: relative;
+    overflow: hidden;
 }
 
 .urgent-important {
@@ -77,6 +79,8 @@ body {
     letter-spacing: 0.025em;
     text-transform: uppercase;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
 }
 
 .task-card {
@@ -87,6 +91,19 @@ body {
     margin-bottom: 1rem;
     transition: all 0.2s ease-in-out;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.task-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05));
+    z-index: 0;
 }
 
 .task-card h5 {
@@ -94,35 +111,42 @@ body {
     margin-bottom: 0.75rem;
     font-size: 1.1rem;
     font-weight: 600;
+    position: relative;
+    z-index: 1;
 }
 
 .task-card p {
     color: rgba(255, 255, 255, 0.8);
     margin-bottom: 1rem;
     font-size: 0.9rem;
+    position: relative;
+    z-index: 1;
 }
 
 .task-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
     border-color: rgba(255, 255, 255, 0.25);
-    background-color: rgba(36, 36, 54, 0.98);
 }
 
 .urgent-important .task-card {
     border-left: 6px solid var(--urgent-important);
+    background: linear-gradient(45deg, rgba(239, 68, 68, 0.1), transparent);
 }
 
 .not-urgent-important .task-card {
     border-left: 6px solid var(--not-urgent-important);
+    background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), transparent);
 }
 
 .urgent-not-important .task-card {
     border-left: 6px solid var(--urgent-not-important);
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.1), transparent);
 }
 
 .not-urgent-not-important .task-card {
     border-left: 6px solid var(--not-urgent-not-important);
+    background: linear-gradient(45deg, rgba(167, 139, 250, 0.1), transparent);
 }
 
 .category-badge {
@@ -134,25 +158,66 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.025em;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+    z-index: 1;
 }
 
-.category-Health { background-color: var(--category-health); }
-.category-Work { background-color: var(--category-work); }
-.category-Personal { background-color: var(--category-personal); }
-.category-Learning { background-color: var(--category-learning); }
-.category-Shopping { background-color: var(--category-shopping); }
+.category-badge::before {
+    content: '';
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.category-Health { 
+    background-color: var(--category-health);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.category-Work { 
+    background-color: var(--category-work);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.category-Personal { 
+    background-color: var(--category-personal);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.category-Learning { 
+    background-color: var(--category-learning);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.category-Shopping { 
+    background-color: var(--category-shopping);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
 
 .task-actions {
     display: flex;
     gap: 0.75rem;
     margin-top: 1rem;
     justify-content: flex-end;
+    position: relative;
+    z-index: 1;
 }
 
 .task-actions button {
     padding: 0.35rem 0.75rem;
     font-size: 0.875rem;
     border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.task-actions button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .header-container {
@@ -161,6 +226,7 @@ body {
     align-items: center;
     margin-bottom: 2rem;
     padding: 1.5rem 0;
+    position: relative;
 }
 
 .header-title {
