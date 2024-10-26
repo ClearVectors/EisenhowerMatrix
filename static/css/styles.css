@@ -22,16 +22,24 @@
 }
 
 body {
-    background-color: var(--app-bg);
+    background-color: var(--app-bg) !important;
+    min-height: 100vh;
+}
+
+.container-fluid {
+    max-width: 1600px;
+    margin: 0 auto;
 }
 
 .matrix-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 2rem;
-    min-height: 80vh;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 2rem !important;
+    min-height: calc(100vh - 150px);
     padding: 0.5rem;
+    margin: 0;
+    width: 100%;
 }
 
 .matrix-quadrant {
@@ -40,6 +48,9 @@ body {
     padding: 2rem;
     border: 3px solid;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
 }
 
 .urgent-important {
@@ -76,6 +87,19 @@ body {
     margin-bottom: 1rem;
     transition: all 0.2s ease-in-out;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.task-card h5 {
+    color: #fff;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.task-card p {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
 }
 
 .task-card:hover {
@@ -183,7 +207,6 @@ body {
     background-color: var(--status-week) !important;
 }
 
-/* Add Task button styling */
 .add-task-btn {
     font-size: 1rem;
     padding: 0.75rem 1.25rem;
@@ -233,12 +256,24 @@ body {
     padding: 1.25rem 1.5rem;
 }
 
+/* Form controls */
+.form-control, .form-select {
+    background-color: rgba(24, 24, 37, 0.8);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: rgba(30, 30, 46, 0.95);
+    border-color: #A78BFA;
+    box-shadow: 0 0 0 0.25rem rgba(167, 139, 250, 0.25);
+    color: #fff;
+}
+
 /* Button styling */
 .btn-outline-secondary {
     border-color: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.9);
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
 }
 
 .btn-outline-secondary:hover {
@@ -252,8 +287,6 @@ body {
     border-color: #A78BFA;
     color: #1E1E2E;
     font-weight: 600;
-    border-radius: 0.5rem;
-    padding: 0.5rem 1rem;
 }
 
 .btn-primary:hover {
