@@ -23,6 +23,16 @@ def index():
     tasks = Task.query.all()
     return render_template('index.html', tasks=tasks)
 
+@app.route('/tasks', methods=['GET'])
+def get_tasks():
+    tasks = Task.query.all()
+    return jsonify([{
+        'id': task.id,
+        'title': task.title,
+        'quadrant': task.quadrant,
+        'completed': task.completed
+    } for task in tasks])
+
 @app.route('/tasks', methods=['POST'])
 def create_task():
     data = request.json
@@ -44,5 +54,29 @@ def update_task(task_id):
     db.session.commit()
     return jsonify({"success": True})
 
+def add_sample_tasks():
+    sample_tasks = [
+        {"title": "Complete project deadline", "quadrant": "UI"},
+        {"title": "Prepare presentation", "quadrant": "UI"},
+        {"title": "Learn new programming language", "quadrant": "UN"},
+        {"title": "Exercise routine", "quadrant": "UN"},
+        {"title": "Reply to emails", "quadrant": "NI"},
+        {"title": "Team meeting", "quadrant": "NI"},
+        {"title": "Browse social media", "quadrant": "NN"},
+        {"title": "Organize desk", "quadrant": "NN"}
+    ]
+    
+    # Only add sample tasks if there are no tasks in the database
+    if Task.query.count() == 0:
+        for task_data in sample_tasks:
+            task = Task(
+                title=task_data["title"],
+                quadrant=task_data["quadrant"],
+                completed=False
+            )
+            db.session.add(task)
+        db.session.commit()
+
 with app.app_context():
     db.create_all()
+    add_sample_tasks()
