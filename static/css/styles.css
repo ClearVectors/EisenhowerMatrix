@@ -55,6 +55,12 @@ body {
     overflow: hidden;
 }
 
+.matrix-quadrant.drag-over {
+    border-color: #F9FAFB;
+    background-color: rgba(24, 24, 37, 0.95);
+    box-shadow: 0 0 15px rgba(167, 139, 250, 0.3);
+}
+
 .task-card {
     background-color: rgba(30, 30, 46, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.15);
@@ -66,6 +72,14 @@ body {
     position: relative;
     overflow: hidden;
     border-left-width: 6px;
+    cursor: grab;
+}
+
+.task-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+    transform: scale(0.95);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .task-overdue {

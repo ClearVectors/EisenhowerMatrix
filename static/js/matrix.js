@@ -1,5 +1,6 @@
 let tasks = [];
 let toastTimeout;
+let draggedTask = null;
 
 function showToast(message, type = 'success') {
     // Remove existing toast if any
@@ -255,7 +256,11 @@ function createTaskCard(task) {
     });
 
     return `
-        <div class="task-card ${task.completed ? 'task-completed' : ''}">
+        <div class="task-card ${task.completed ? 'task-completed' : ''}"
+             draggable="true"
+             data-task-id="${task.id}"
+             ondragstart="handleDragStart(event)"
+             ondragend="handleDragEnd(event)">
             <h5>${task.title}</h5>
             <p>${task.description || ''}</p>
             <div class="d-flex justify-content-between align-items-center">
@@ -282,6 +287,88 @@ function createTaskCard(task) {
             </div>
         </div>
     `;
+}
+
+function handleDragStart(event) {
+    draggedTask = tasks.find(t => t.id === parseInt(event.target.dataset.taskId));
+    event.target.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', event.target.dataset.taskId);
+}
+
+function handleDragEnd(event) {
+    event.target.classList.remove('dragging');
+    draggedTask = null;
+    
+    // Remove all drag-over effects
+    document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
+        quadrant.classList.remove('drag-over');
+    });
+}
+
+function handleDragOver(event) {
+    if (event.preventDefault) {
+        event.preventDefault();
+    }
+    event.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(event) {
+    const quadrant = event.target.closest('.matrix-quadrant');
+    if (quadrant) {
+        quadrant.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(event) {
+    const quadrant = event.target.closest('.matrix-quadrant');
+    if (quadrant) {
+        quadrant.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    
+    const quadrant = event.target.closest('.matrix-quadrant');
+    if (!quadrant || !draggedTask) return;
+
+    const newQuadrant = quadrant.querySelector('.task-list').id;
+    if (draggedTask.quadrant !== newQuadrant) {
+        console.log('Moving task to new quadrant:', { taskId: draggedTask.id, newQuadrant });
+
+        fetch(`/tasks/${draggedTask.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ...draggedTask,
+                quadrant: newQuadrant
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            loadTasks();
+            showToast('Task moved successfully');
+        })
+        .catch(error => {
+            console.error('Error moving task:', error);
+            showToast(error.message || 'Failed to move task', 'error');
+            loadTasks(); // Reload to restore original position
+        });
+    }
+
+    quadrant.classList.remove('drag-over');
+    return false;
 }
 
 function loadTasks(filter = 'all') {
@@ -323,6 +410,14 @@ function loadTasks(filter = 'all') {
             if (quadrants[task.quadrant]) {
                 quadrants[task.quadrant].innerHTML += createTaskCard(task);
             }
+        });
+
+        // Add drag and drop event listeners to quadrants
+        document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
+            quadrant.ondragover = handleDragOver;
+            quadrant.ondragenter = handleDragEnter;
+            quadrant.ondragleave = handleDragLeave;
+            quadrant.ondrop = handleDrop;
         });
     })
     .catch(error => {
