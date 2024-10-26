@@ -1,7 +1,9 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from datetime import datetime, timedelta
 from models import db, Task
+import csv
+from io import StringIO
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "eisenhower_matrix_key"
@@ -59,6 +61,62 @@ def get_tasks():
         'reminder_set': task.reminder_set,
         'tags': task.tags or []
     } for task in tasks])
+
+@app.route('/tasks/export', methods=['GET'])
+def export_tasks():
+    # Get tasks with current filters
+    search_query = request.args.get('search', '').lower()
+    filter_type = request.args.get('filter', 'all')
+    tag_filter = request.args.get('tag')
+
+    query = Task.query
+
+    if search_query:
+        query = query.filter(Task.title.ilike(f'%{search_query}%'))
+    if tag_filter:
+        query = query.filter(Task.tags.contains([tag_filter]))
+    if filter_type == 'completed':
+        query = query.filter_by(completed=True)
+    elif filter_type == 'active':
+        query = query.filter_by(completed=False)
+    elif filter_type == 'due-soon':
+        now = datetime.now()
+        soon = now + timedelta(hours=24)
+        query = query.filter(
+            Task.due_date.isnot(None),
+            Task.due_date >= now,
+            Task.due_date <= soon,
+            Task.completed == False
+        )
+
+    tasks = query.all()
+
+    # Create CSV in memory
+    si = StringIO()
+    cw = csv.writer(si)
+    
+    # Write headers
+    cw.writerow(['Title', 'Quadrant', 'Status', 'Due Date', 'Reminder Set', 'Tags'])
+    
+    # Write task data
+    for task in tasks:
+        cw.writerow([
+            task.title,
+            task.quadrant,
+            'Completed' if task.completed else 'Active',
+            task.due_date.isoformat() if task.due_date else '',
+            'Yes' if task.reminder_set else 'No',
+            ', '.join(task.tags) if task.tags else ''
+        ])
+    
+    output = si.getvalue()
+    si.close()
+    
+    # Create response
+    return output, 200, {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': f'attachment; filename=tasks_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    }
 
 @app.route('/tasks', methods=['POST'])
 def create_task():

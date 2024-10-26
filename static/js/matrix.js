@@ -69,7 +69,7 @@ function filterByTag(tag) {
 // Search functionality
 function searchTasks() {
     const searchQuery = document.getElementById('searchInput').value.trim();
-    const activeFilter = document.querySelector('.btn-group .active').getAttribute('data-filter') || 'all';
+    const activeFilter = document.querySelector('.btn-group .active').textContent.toLowerCase();
     loadTasks(searchQuery, activeFilter);
 }
 
@@ -85,6 +85,23 @@ function filterTasks(filterType) {
 
     const searchQuery = document.getElementById('searchInput').value.trim();
     loadTasks(searchQuery, filterType);
+}
+
+// Export functionality
+function exportTasks() {
+    const searchQuery = document.getElementById('searchInput').value.trim();
+    const activeFilter = document.querySelector('.btn-group .active').textContent.toLowerCase();
+    const queryParams = new URLSearchParams();
+    if (searchQuery) queryParams.append('search', searchQuery);
+    if (activeFilter) queryParams.append('filter', activeFilter);
+    
+    // Create a temporary link to trigger the download
+    const link = document.createElement('a');
+    link.href = `/tasks/export?${queryParams.toString()}`;
+    link.download = `tasks_export_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Add event listener for search input (search as you type)

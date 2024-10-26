@@ -11,7 +11,7 @@
     <div class="container mt-4">
         <h1 class="text-center mb-4">Eisenhower Matrix</h1>
         
-        <!-- Search, Filter, and Tags Section -->
+        <!-- Search, Filter, and Export Section -->
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="input-group mb-3">
@@ -22,11 +22,16 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="btn-group w-100 mb-3" role="group">
-                    <button type="button" class="btn btn-outline-secondary active" onclick="filterTasks('all')">All</button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('active')">Active</button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('completed')">Completed</button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('due-soon')">Due Soon</button>
+                <div class="d-flex gap-2">
+                    <div class="btn-group flex-grow-1" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" onclick="filterTasks('all')">All</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('active')">Active</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('completed')">Completed</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('due-soon')">Due Soon</button>
+                    </div>
+                    <button type="button" class="btn btn-outline-info" onclick="exportTasks()">
+                        Export Tasks
+                    </button>
                 </div>
             </div>
             <!-- Tag Filter Section -->
