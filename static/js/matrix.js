@@ -1,6 +1,36 @@
 let tasks = [];
+let toastTimeout;
+
+function showToast(message, type = 'success') {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    // Clear existing timeout
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+    }
+
+    // Create new toast
+    const toast = document.createElement('div');
+    toast.className = `toast position-fixed bottom-0 end-0 m-4 ${type === 'error' ? 'bg-danger' : 'bg-success'} text-white`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="toast-body d-flex align-items-center">
+            <span>${message}</span>
+            <button type="button" class="btn-close btn-close-white ms-3" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    // Auto remove after 3 seconds
+    toastTimeout = setTimeout(() => toast.remove(), 3000);
+}
 
 function showAddTaskModal(quadrant = '') {
+    console.log('Opening add task modal for quadrant:', quadrant);
     document.getElementById('taskQuadrant').value = quadrant;
     const modal = new bootstrap.Modal(document.getElementById('addTaskModal'));
     modal.show();
@@ -14,7 +44,7 @@ function addTask() {
     const quadrant = document.getElementById('taskQuadrant').value;
 
     if (!title || !dueDate) {
-        alert('Please fill in all required fields');
+        showToast('Please fill in all required fields', 'error');
         return;
     }
 
@@ -26,6 +56,8 @@ function addTask() {
         quadrant
     };
 
+    console.log('Adding new task:', task);
+
     fetch('/tasks', {
         method: 'POST',
         headers: {
@@ -35,7 +67,9 @@ function addTask() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            });
         }
         return response.json();
     })
@@ -44,36 +78,54 @@ function addTask() {
         modal.hide();
         document.getElementById('taskForm').reset();
         loadTasks();
+        showToast('Task added successfully');
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to add task. Please try again.');
+        console.error('Error adding task:', error);
+        showToast(error.message || 'Failed to add task', 'error');
     });
 }
 
 function showEditTaskModal(taskId) {
+    console.log('Opening edit modal for task:', taskId);
     const task = tasks.find(t => t.id === taskId);
     if (!task) {
-        alert('Task not found.');
+        showToast('Task not found', 'error');
         return;
     }
 
-    // Format date for the input field (YYYY-MM-DD)
-    const dueDate = new Date(task.due_date);
-    const formattedDate = dueDate.toISOString().split('T')[0];
+    try {
+        // Format date for the input field (YYYY-MM-DD)
+        const dueDate = new Date(task.due_date);
+        const formattedDate = dueDate.toISOString().split('T')[0];
 
-    document.getElementById('editTaskId').value = task.id;
-    document.getElementById('editTaskTitle').value = task.title;
-    document.getElementById('editTaskDescription').value = task.description || '';
-    document.getElementById('editTaskCategory').value = task.category;
-    document.getElementById('editTaskDueDate').value = formattedDate;
-    document.getElementById('editTaskQuadrant').value = task.quadrant;
+        // Set form values
+        document.getElementById('editTaskId').value = task.id;
+        document.getElementById('editTaskTitle').value = task.title;
+        document.getElementById('editTaskDescription').value = task.description || '';
+        document.getElementById('editTaskCategory').value = task.category;
+        document.getElementById('editTaskDueDate').value = formattedDate;
+        document.getElementById('editTaskQuadrant').value = task.quadrant;
 
-    const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
-    modal.show();
+        console.log('Task data populated in edit form:', {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            category: task.category,
+            dueDate: formattedDate,
+            quadrant: task.quadrant
+        });
+
+        const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error showing edit modal:', error);
+        showToast('Error loading task data', 'error');
+    }
 }
 
 function validateTaskData(taskData) {
+    console.log('Validating task data:', taskData);
     const errors = [];
     if (!taskData.title.trim()) errors.push('Title is required');
     if (!taskData.due_date) errors.push('Due date is required');
@@ -97,10 +149,12 @@ function updateTask() {
         quadrant: document.getElementById('editTaskQuadrant').value
     };
 
+    console.log('Updating task:', { taskId, task });
+
     // Validate form data
     const errors = validateTaskData(task);
     if (errors.length > 0) {
-        alert('Please correct the following errors:\n' + errors.join('\n'));
+        showToast('Please correct the following errors:\n' + errors.join('\n'), 'error');
         saveButton.innerHTML = originalButtonText;
         saveButton.disabled = false;
         return;
@@ -115,18 +169,22 @@ function updateTask() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            });
         }
         return response.json();
     })
     .then(data => {
+        console.log('Task updated successfully:', data);
         const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
         modal.hide();
         loadTasks();
+        showToast('Task updated successfully');
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to update task. Please try again.');
+        console.error('Error updating task:', error);
+        showToast(error.message || 'Failed to update task', 'error');
     })
     .finally(() => {
         saveButton.innerHTML = originalButtonText;
@@ -137,22 +195,32 @@ function updateTask() {
 function deleteTask(taskId) {
     if (!confirm('Are you sure you want to delete this task?')) return;
 
+    console.log('Deleting task:', taskId);
+
     fetch(`/tasks/${taskId}`, {
         method: 'DELETE'
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            });
         }
+        return response.json();
+    })
+    .then(data => {
         loadTasks();
+        showToast('Task deleted successfully');
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to delete task. Please try again.');
+        console.error('Error deleting task:', error);
+        showToast(error.message || 'Failed to delete task', 'error');
     });
 }
 
 function toggleTaskCompletion(taskId, completed) {
+    console.log('Toggling task completion:', { taskId, completed });
+
     fetch(`/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
@@ -162,16 +230,19 @@ function toggleTaskCompletion(taskId, completed) {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            });
         }
         return response.json();
     })
     .then(data => {
         loadTasks();
+        showToast(`Task marked as ${!completed ? 'completed' : 'incomplete'}`);
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to update task status. Please try again.');
+        console.error('Error updating task status:', error);
+        showToast(error.message || 'Failed to update task status', 'error');
     });
 }
 
@@ -184,7 +255,7 @@ function createTaskCard(task) {
     });
 
     return `
-        <div class="task-card">
+        <div class="task-card ${task.completed ? 'task-completed' : ''}">
             <h5>${task.title}</h5>
             <p>${task.description || ''}</p>
             <div class="d-flex justify-content-between align-items-center">
@@ -192,21 +263,30 @@ function createTaskCard(task) {
                 <small class="text-muted">${formattedDueDate}</small>
             </div>
             <div class="task-actions mt-3">
-                <button class="btn btn-outline-secondary btn-sm edit-task-btn" onclick="showEditTaskModal(${task.id})" data-task-id="${task.id}">
+                <button class="btn btn-outline-secondary btn-sm edit-task-btn" 
+                        onclick="showEditTaskModal(${task.id})" 
+                        data-task-id="${task.id}"
+                        title="Edit task">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                         <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
                     </svg>
                 </button>
-                <button class="btn btn-outline-${task.completed ? 'warning' : 'success'} btn-sm" onclick="toggleTaskCompletion(${task.id}, ${task.completed})">
+                <button class="btn btn-outline-${task.completed ? 'warning' : 'success'} btn-sm" 
+                        onclick="toggleTaskCompletion(${task.id}, ${task.completed})"
+                        title="${task.completed ? 'Mark as incomplete' : 'Mark as complete'}">
                     ${task.completed ? 'Undo' : 'Complete'}
                 </button>
-                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.id})">Delete</button>
+                <button class="btn btn-outline-danger btn-sm" 
+                        onclick="deleteTask(${task.id})"
+                        title="Delete task">Delete</button>
             </div>
         </div>
     `;
 }
 
 function loadTasks(filter = 'all') {
+    console.log('Loading tasks with filter:', filter);
+
     const quadrants = {
         'urgent-important': document.getElementById('urgent-important'),
         'not-urgent-important': document.getElementById('not-urgent-important'),
@@ -230,6 +310,7 @@ function loadTasks(filter = 'all') {
         })
     ])
     .then(([allTasks, filteredTasks]) => {
+        console.log('Tasks loaded:', { allTasks, filteredTasks });
         tasks = allTasks;
 
         // Clear existing tasks
@@ -245,10 +326,11 @@ function loadTasks(filter = 'all') {
         });
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Error loading tasks:', error);
         Object.values(quadrants).forEach(quadrant => {
             quadrant.innerHTML = '<div class="alert alert-danger">Failed to load tasks. Please refresh the page to try again.</div>';
         });
+        showToast('Failed to load tasks', 'error');
     });
 }
 
@@ -262,5 +344,6 @@ function exportTasks() {
 
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Application initialized');
     loadTasks();
 });

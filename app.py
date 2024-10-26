@@ -45,13 +45,12 @@ def add_sample_tasks():
     ]
     
     for task_data in tasks:
-        task = Task(
-            title=task_data['title'],
-            description=task_data['description'],
-            category=task_data['category'],
-            due_date=task_data['due_date'],
-            quadrant=task_data['quadrant']
-        )
+        task = Task()
+        task.title = task_data['title']
+        task.description = task_data['description']
+        task.category = task_data['category']
+        task.due_date = task_data['due_date']
+        task.quadrant = task_data['quadrant']
         db.session.add(task)
     
     db.session.commit()
@@ -90,58 +89,101 @@ def get_tasks():
 
 @app.route('/tasks', methods=['POST'])
 def create_task():
-    data = request.json
-    task = Task(
-        title=data['title'],
-        description=data.get('description', ''),
-        category=data['category'],
-        due_date=datetime.fromisoformat(data['due_date']),
-        quadrant=data['quadrant']
-    )
-    db.session.add(task)
-    db.session.commit()
-    return jsonify({
-        'id': task.id,
-        'title': task.title,
-        'description': task.description,
-        'category': task.category,
-        'due_date': task.due_date.isoformat(),
-        'quadrant': task.quadrant,
-        'completed': task.completed
-    })
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        required_fields = ['title', 'category', 'due_date', 'quadrant']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
+            return jsonify({'error': f'Missing required fields: {", ".join(missing_fields)}'}), 400
+
+        task = Task()
+        task.title = data['title']
+        task.description = data.get('description', '')
+        task.category = data['category']
+        task.due_date = datetime.fromisoformat(data['due_date'])
+        task.quadrant = data['quadrant']
+        
+        db.session.add(task)
+        db.session.commit()
+
+        return jsonify({
+            'id': task.id,
+            'title': task.title,
+            'description': task.description,
+            'category': task.category,
+            'due_date': task.due_date.isoformat(),
+            'quadrant': task.quadrant,
+            'completed': task.completed
+        }), 201
+
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({'error': 'Invalid date format'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/tasks/<int:task_id>', methods=['PUT'])
 def update_task(task_id):
-    task = Task.query.get_or_404(task_id)
-    data = request.json
-    
-    if 'completed' in data:
-        task.completed = data['completed']
-    else:
-        task.title = data.get('title', task.title)
-        task.description = data.get('description', task.description)
-        task.category = data.get('category', task.category)
-        task.quadrant = data.get('quadrant', task.quadrant)
-        if 'due_date' in data:
-            task.due_date = datetime.fromisoformat(data['due_date'])
-    
-    db.session.commit()
-    return jsonify({
-        'id': task.id,
-        'title': task.title,
-        'description': task.description,
-        'category': task.category,
-        'due_date': task.due_date.isoformat(),
-        'quadrant': task.quadrant,
-        'completed': task.completed
-    })
+    try:
+        task = Task.query.get_or_404(task_id)
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        if 'completed' in data:
+            task.completed = data['completed']
+        else:
+            # Validate required fields for task update
+            if 'title' not in data or not data['title'].strip():
+                return jsonify({'error': 'Title is required'}), 400
+            if 'quadrant' not in data:
+                return jsonify({'error': 'Quadrant is required'}), 400
+            if 'category' not in data:
+                return jsonify({'error': 'Category is required'}), 400
+
+            task.title = data['title'].strip()
+            task.description = data.get('description', '').strip()
+            task.category = data['category']
+            task.quadrant = data['quadrant']
+            
+            if 'due_date' in data:
+                try:
+                    task.due_date = datetime.fromisoformat(data['due_date'])
+                except ValueError:
+                    return jsonify({'error': 'Invalid date format'}), 400
+
+        db.session.commit()
+        
+        return jsonify({
+            'id': task.id,
+            'title': task.title,
+            'description': task.description,
+            'category': task.category,
+            'due_date': task.due_date.isoformat(),
+            'quadrant': task.quadrant,
+            'completed': task.completed,
+            'message': 'Task updated successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
-    task = Task.query.get_or_404(task_id)
-    db.session.delete(task)
-    db.session.commit()
-    return jsonify({'result': True})
+    try:
+        task = Task.query.get_or_404(task_id)
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({'message': 'Task deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 with app.app_context():
     db.create_all()
