@@ -58,7 +58,17 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="text" id="taskInput" class="form-control" placeholder="Enter task">
+                    <div class="mb-3">
+                        <input type="text" id="taskInput" class="form-control" placeholder="Enter task">
+                    </div>
+                    <div class="mb-3">
+                        <label for="dueDateInput" class="form-label">Due Date</label>
+                        <input type="datetime-local" id="dueDateInput" class="form-control">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="reminderCheck">
+                        <label class="form-check-label" for="reminderCheck">Set Reminder</label>
+                    </div>
                     <input type="hidden" id="quadrantInput">
                 </div>
                 <div class="modal-footer">
