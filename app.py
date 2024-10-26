@@ -162,6 +162,8 @@ def update_task(task_id):
         return jsonify({"error": "No data provided"}), 400
     
     try:
+        if 'title' in data:
+            task.title = data['title']
         if 'quadrant' in data:
             task.quadrant = data['quadrant']
         if 'completed' in data:
@@ -178,13 +180,22 @@ def update_task(task_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/tasks/<int:task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    try:
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 def add_sample_tasks():
     if Task.query.count() == 0:
         tomorrow = datetime.now() + timedelta(days=1)
         next_week = datetime.now() + timedelta(days=7)
         
         sample_tasks = [
-            # Urgent & Important tasks
             {
                 "title": "Complete project deadline",
                 "quadrant": "UI",
@@ -200,37 +211,12 @@ def add_sample_tasks():
                 "tags": ["finance", "documents"]
             },
             {
-                "title": "Pay utility bills",
-                "quadrant": "UI",
-                "due_date": tomorrow.replace(hour=12, minute=0),
-                "reminder_set": True,
-                "tags": ["finance", "home"]
-            },
-            
-            # Not Urgent & Important tasks
-            {
                 "title": "Learn new programming language",
                 "quadrant": "UN",
                 "due_date": None,
                 "reminder_set": False,
                 "tags": ["learning", "tech"]
             },
-            {
-                "title": "Read programming book",
-                "quadrant": "UN",
-                "due_date": None,
-                "reminder_set": False,
-                "tags": ["learning", "tech"]
-            },
-            {
-                "title": "Plan vacation",
-                "quadrant": "UN",
-                "due_date": next_week.replace(hour=18, minute=0),
-                "reminder_set": False,
-                "tags": ["personal", "travel"]
-            },
-            
-            # Urgent & Not Important tasks
             {
                 "title": "Reply to emails",
                 "quadrant": "NI",
@@ -239,40 +225,23 @@ def add_sample_tasks():
                 "tags": ["work", "communication"]
             },
             {
-                "title": "Attend company social event",
-                "quadrant": "NI",
-                "due_date": tomorrow.replace(hour=15, minute=0),
-                "reminder_set": True,
-                "tags": ["work", "social"]
-            },
-            {
-                "title": "Schedule routine car maintenance",
-                "quadrant": "NI",
-                "due_date": tomorrow.replace(hour=10, minute=0),
-                "reminder_set": False,
-                "tags": ["maintenance", "personal"]
-            },
-            
-            # Not Urgent & Not Important tasks
-            {
                 "title": "Organize digital photos",
                 "quadrant": "NN",
                 "due_date": None,
                 "reminder_set": False,
                 "tags": ["personal", "organization"]
-            },
-            {
-                "title": "Clean up downloads folder",
-                "quadrant": "NN",
-                "due_date": None,
-                "reminder_set": False,
-                "tags": ["tech", "organization"]
             }
         ]
         
         for task_data in sample_tasks:
-            task = Task(**task_data)
-            db.session.add(task)
+            new_task = Task(
+                title=task_data["title"],
+                quadrant=task_data["quadrant"],
+                due_date=task_data["due_date"],
+                reminder_set=task_data["reminder_set"],
+                tags=task_data["tags"]
+            )
+            db.session.add(new_task)
         db.session.commit()
 
 with app.app_context():

@@ -146,11 +146,26 @@ document.getElementById('searchInput').addEventListener('input', () => {
 const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
 
 function showAddTask(quadrant) {
+    document.getElementById('modalTitle').textContent = 'Add New Task';
     document.getElementById('quadrantInput').value = quadrant;
     document.getElementById('taskInput').value = '';
     document.getElementById('dueDateInput').value = '';
     document.getElementById('tagsInput').value = '';
     document.getElementById('reminderCheck').checked = false;
+    document.getElementById('taskForm').setAttribute('data-action', 'add');
+    document.getElementById('taskForm').removeAttribute('data-task-id');
+    taskModal.show();
+}
+
+function showEditTask(task) {
+    document.getElementById('modalTitle').textContent = 'Edit Task';
+    document.getElementById('quadrantInput').value = task.quadrant;
+    document.getElementById('taskInput').value = task.title;
+    document.getElementById('dueDateInput').value = task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '';
+    document.getElementById('tagsInput').value = task.tags ? task.tags.join(', ') : '';
+    document.getElementById('reminderCheck').checked = task.reminder_set;
+    document.getElementById('taskForm').setAttribute('data-action', 'edit');
+    document.getElementById('taskForm').setAttribute('data-task-id', task.id);
     taskModal.show();
 }
 
@@ -160,7 +175,7 @@ function formatDate(dateString) {
     return date.toLocaleString();
 }
 
-function addTask() {
+function saveTask() {
     const title = document.getElementById('taskInput').value.trim();
     const quadrant = document.getElementById('quadrantInput').value;
     const dueDate = document.getElementById('dueDateInput').value;
@@ -174,8 +189,15 @@ function addTask() {
         return;
     }
 
-    fetch('/tasks', {
-        method: 'POST',
+    const taskForm = document.getElementById('taskForm');
+    const isEdit = taskForm.getAttribute('data-action') === 'edit';
+    const taskId = isEdit ? taskForm.getAttribute('data-task-id') : null;
+    
+    const method = isEdit ? 'PUT' : 'POST';
+    const url = isEdit ? `/tasks/${taskId}` : '/tasks';
+    
+    fetch(url, {
+        method: method,
         headers: {
             'Content-Type': 'application/json',
         },
@@ -193,17 +215,35 @@ function addTask() {
         }
         return response.json();
     })
-    .then(task => {
-        createTaskElement(task);
+    .then(() => {
         taskModal.hide();
-        // Update tag filters
-        task.tags.forEach(tag => allTags.add(tag));
-        updateTagFilters();
+        loadTasks();
     })
     .catch(error => {
-        console.error('Error adding task:', error);
-        alert('Failed to add task. Please try again.');
+        console.error('Error saving task:', error);
+        alert('Failed to save task. Please try again.');
     });
+}
+
+function deleteTask(taskId) {
+    if (confirm('Are you sure you want to delete this task?')) {
+        fetch(`/tasks/${taskId}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(() => {
+            loadTasks();
+        })
+        .catch(error => {
+            console.error('Error deleting task:', error);
+            alert('Failed to delete task. Please try again.');
+        });
+    }
 }
 
 function createTaskElement(task) {
@@ -218,15 +258,28 @@ function createTaskElement(task) {
         `<span class="badge bg-secondary me-1">${tag}</span>`).join('') : '';
     
     taskElement.innerHTML = `
-        <div>
-            <span>${task.title}</span>
-            ${reminderBadge}
+        <div class="task-content">
+            <div class="task-header">
+                <span class="task-title">${task.title}</span>
+                ${reminderBadge}
+            </div>
             <div class="mt-1">${tagBadges}</div>
             ${dueDate ? `<small class="text-muted d-block">${dueDate}</small>` : ''}
         </div>
-        <div>
-            <input type="checkbox" ${task.completed ? 'checked' : ''} 
-                   onclick="toggleComplete(${task.id}, this.checked)">
+        <div class="task-actions">
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" onclick="showEditTask(${JSON.stringify(task).replace(/"/g, '&quot;')})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger" onclick="deleteTask(${task.id})">
+                    <i class="bi bi-trash"></i>
+                </button>
+                <input type="checkbox" class="btn-check" id="complete-${task.id}" ${task.completed ? 'checked' : ''} 
+                       onclick="toggleComplete(${task.id}, this.checked)">
+                <label class="btn btn-outline-success" for="complete-${task.id}">
+                    <i class="bi bi-check2"></i>
+                </label>
+            </div>
         </div>
     `;
 

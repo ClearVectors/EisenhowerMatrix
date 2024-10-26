@@ -27,10 +27,39 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: 10px;
+}
+
+.task-content {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.task-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-title {
+    word-break: break-word;
+}
+
+.task-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.task-actions .btn {
+    padding: 0.25rem 0.5rem;
 }
 
 .task-item.completed {
     opacity: 0.6;
+}
+
+.task-item.completed .task-title {
     text-decoration: line-through;
 }
 
@@ -102,5 +131,9 @@
     .matrix-quadrant {
         height: 250px;
         margin-bottom: 15px;
+    }
+    
+    .task-actions {
+        flex-direction: column;
     }
 }
