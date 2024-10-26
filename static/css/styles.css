@@ -1,3 +1,22 @@
+/* Theme variables */
+[data-bs-theme='dark'] {
+    --matrix-bg-color: var(--bs-dark);
+    --task-bg-color: var(--bs-dark);
+    --matrix-ui-bg: var(--bs-danger-bg-subtle);
+    --matrix-un-bg: var(--bs-info-bg-subtle);
+    --matrix-ni-bg: var(--bs-warning-bg-subtle);
+    --matrix-nn-bg: var(--bs-secondary-bg-subtle);
+}
+
+[data-bs-theme='light'] {
+    --matrix-bg-color: var(--bs-light);
+    --task-bg-color: var(--bs-white);
+    --matrix-ui-bg: var(--bs-danger-bg-subtle);
+    --matrix-un-bg: var(--bs-info-bg-subtle);
+    --matrix-ni-bg: var(--bs-warning-bg-subtle);
+    --matrix-nn-bg: var(--bs-secondary-bg-subtle);
+}
+
 .matrix-container {
     margin: 20px 0;
 }
@@ -7,6 +26,7 @@
     border-radius: 8px;
     height: 300px;
     overflow-y: auto;
+    background-color: var(--matrix-bg-color);
 }
 
 .matrix-quadrant h3 {
@@ -19,7 +39,7 @@
 }
 
 .task-item {
-    background: var(--bs-dark);
+    background-color: var(--task-bg-color);
     padding: 10px;
     margin: 5px 0;
     border-radius: 4px;
@@ -28,6 +48,7 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 10px;
+    border: 1px solid var(--bs-border-color);
 }
 
 .task-content {
@@ -73,19 +94,19 @@
 }
 
 .urgent.important {
-    background: var(--bs-danger-bg-subtle);
+    background-color: var(--matrix-ui-bg);
 }
 
 .urgent.not-important {
-    background: var(--bs-warning-bg-subtle);
+    background-color: var(--matrix-ni-bg);
 }
 
 .not-urgent.important {
-    background: var(--bs-info-bg-subtle);
+    background-color: var(--matrix-un-bg);
 }
 
 .not-urgent.not-important {
-    background: var(--bs-secondary-bg-subtle);
+    background-color: var(--matrix-nn-bg);
 }
 
 .add-task {
