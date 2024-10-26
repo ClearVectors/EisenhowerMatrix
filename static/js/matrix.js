@@ -1,7 +1,40 @@
+// Theme handling
+function initializeTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    // Update toggle button icons
+    const lightIcon = document.querySelector('.theme-icon-light');
+    const darkIcon = document.querySelector('.theme-icon-dark');
+    
+    if (theme === 'light') {
+        lightIcon.classList.remove('d-none');
+        darkIcon.classList.add('d-none');
+    } else {
+        lightIcon.classList.add('d-none');
+        darkIcon.classList.remove('d-none');
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+}
+
 // Initialize tasks from server data
 document.addEventListener('DOMContentLoaded', () => {
+    initializeTheme();
     loadTasks();
     checkDueReminders();
+    
+    // Add theme toggle event listener
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 });
 
 // Keep track of all unique tags
