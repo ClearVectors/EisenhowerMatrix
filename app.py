@@ -1,6 +1,6 @@
 import os
 from flask import Flask, render_template, request, jsonify
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import db, Task
 
 app = Flask(__name__)
@@ -19,7 +19,32 @@ def index():
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-    tasks = Task.query.all()
+    search_query = request.args.get('search', '').lower()
+    filter_type = request.args.get('filter', 'all')
+
+    # Start with base query
+    query = Task.query
+
+    # Apply search filter if provided
+    if search_query:
+        query = query.filter(Task.title.ilike(f'%{search_query}%'))
+
+    # Apply status filter
+    if filter_type == 'completed':
+        query = query.filter_by(completed=True)
+    elif filter_type == 'active':
+        query = query.filter_by(completed=False)
+    elif filter_type == 'due-soon':
+        now = datetime.now()
+        soon = now + timedelta(hours=24)  # Tasks due within 24 hours
+        query = query.filter(
+            Task.due_date.isnot(None),
+            Task.due_date >= now,
+            Task.due_date <= soon,
+            Task.completed == False
+        )
+
+    tasks = query.all()
     return jsonify([{
         'id': task.id,
         'title': task.title,

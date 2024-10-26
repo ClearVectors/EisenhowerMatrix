@@ -11,6 +11,26 @@
     <div class="container mt-4">
         <h1 class="text-center mb-4">Eisenhower Matrix</h1>
         
+        <!-- Search and Filter Section -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search tasks...">
+                    <button class="btn btn-outline-secondary" type="button" onclick="searchTasks()">
+                        Search
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn btn-outline-secondary active" onclick="filterTasks('all')">All</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('active')">Active</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('completed')">Completed</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('due-soon')">Due Soon</button>
+                </div>
+            </div>
+        </div>
+        
         <div class="matrix-container">
             <div class="row g-3">
                 <div class="col-md-6">

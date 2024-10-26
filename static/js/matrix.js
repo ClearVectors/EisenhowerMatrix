@@ -1,6 +1,15 @@
 // Initialize tasks from server data
 document.addEventListener('DOMContentLoaded', () => {
-    fetch('/tasks')
+    loadTasks();
+    checkDueReminders();
+});
+
+function loadTasks(searchQuery = '', filterType = 'all') {
+    const queryParams = new URLSearchParams();
+    if (searchQuery) queryParams.append('search', searchQuery);
+    if (filterType) queryParams.append('filter', filterType);
+
+    fetch(`/tasks?${queryParams.toString()}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -8,13 +17,46 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(tasks => {
+            // Clear existing tasks
+            document.querySelectorAll('.task-list').forEach(list => {
+                // Keep the "Add Task" button
+                const addButton = list.querySelector('.add-task');
+                list.innerHTML = '';
+                if (addButton) list.appendChild(addButton);
+            });
+            // Add filtered tasks
             tasks.forEach(task => createTaskElement(task));
-            checkDueReminders();
         })
         .catch(error => {
             console.error('Error loading tasks:', error);
             alert('Failed to load tasks. Please refresh the page.');
         });
+}
+
+// Search functionality
+function searchTasks() {
+    const searchQuery = document.getElementById('searchInput').value.trim();
+    const activeFilter = document.querySelector('.btn-group .active').getAttribute('data-filter') || 'all';
+    loadTasks(searchQuery, activeFilter);
+}
+
+// Filter functionality
+function filterTasks(filterType) {
+    // Update active button state
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(filterType)) {
+            btn.classList.add('active');
+        }
+    });
+
+    const searchQuery = document.getElementById('searchInput').value.trim();
+    loadTasks(searchQuery, filterType);
+}
+
+// Add event listener for search input (search as you type)
+document.getElementById('searchInput').addEventListener('input', () => {
+    searchTasks();
 });
 
 // Modal handling
