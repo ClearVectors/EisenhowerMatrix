@@ -68,7 +68,6 @@ def create_task():
         task = Task(
             title=data['title'],
             quadrant=data['quadrant'],
-            completed=False,
             due_date=due_date,
             reminder_set=data.get('reminder_set', False)
         )
@@ -113,7 +112,11 @@ def update_task(task_id):
 
 def add_sample_tasks():
     if Task.query.count() == 0:
+        tomorrow = datetime.now() + timedelta(days=1)
+        next_week = datetime.now() + timedelta(days=7)
+        
         sample_tasks = [
+            # Urgent & Important tasks
             {
                 "title": "Complete project deadline",
                 "quadrant": "UI",
@@ -121,11 +124,19 @@ def add_sample_tasks():
                 "reminder_set": True
             },
             {
-                "title": "Prepare presentation",
+                "title": "Submit tax documents",
                 "quadrant": "UI",
-                "due_date": datetime.now().replace(hour=14, minute=30),
+                "due_date": tomorrow.replace(hour=17, minute=0),
                 "reminder_set": True
             },
+            {
+                "title": "Pay utility bills",
+                "quadrant": "UI",
+                "due_date": tomorrow.replace(hour=12, minute=0),
+                "reminder_set": True
+            },
+            
+            # Not Urgent & Important tasks
             {
                 "title": "Learn new programming language",
                 "quadrant": "UN",
@@ -133,20 +144,48 @@ def add_sample_tasks():
                 "reminder_set": False
             },
             {
-                "title": "Exercise routine",
+                "title": "Read programming book",
                 "quadrant": "UN",
                 "due_date": None,
                 "reminder_set": False
             },
             {
+                "title": "Plan vacation",
+                "quadrant": "UN",
+                "due_date": next_week.replace(hour=18, minute=0),
+                "reminder_set": False
+            },
+            
+            # Urgent & Not Important tasks
+            {
                 "title": "Reply to emails",
                 "quadrant": "NI",
+                "due_date": datetime.now().replace(hour=16, minute=30),
+                "reminder_set": True
+            },
+            {
+                "title": "Attend company social event",
+                "quadrant": "NI",
+                "due_date": tomorrow.replace(hour=15, minute=0),
+                "reminder_set": True
+            },
+            {
+                "title": "Schedule routine car maintenance",
+                "quadrant": "NI",
+                "due_date": tomorrow.replace(hour=10, minute=0),
+                "reminder_set": False
+            },
+            
+            # Not Urgent & Not Important tasks
+            {
+                "title": "Organize digital photos",
+                "quadrant": "NN",
                 "due_date": None,
                 "reminder_set": False
             },
             {
-                "title": "Team meeting",
-                "quadrant": "NI",
+                "title": "Clean up downloads folder",
+                "quadrant": "NN",
                 "due_date": None,
                 "reminder_set": False
             }
