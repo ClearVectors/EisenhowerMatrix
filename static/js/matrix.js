@@ -4,10 +4,14 @@ document.addEventListener('DOMContentLoaded', () => {
     checkDueReminders();
 });
 
-function loadTasks(searchQuery = '', filterType = 'all') {
+// Keep track of all unique tags
+let allTags = new Set();
+
+function loadTasks(searchQuery = '', filterType = 'all', tagFilter = '') {
     const queryParams = new URLSearchParams();
     if (searchQuery) queryParams.append('search', searchQuery);
     if (filterType) queryParams.append('filter', filterType);
+    if (tagFilter) queryParams.append('tag', tagFilter);
 
     fetch(`/tasks?${queryParams.toString()}`)
         .then(response => {
@@ -24,13 +28,42 @@ function loadTasks(searchQuery = '', filterType = 'all') {
                 list.innerHTML = '';
                 if (addButton) list.appendChild(addButton);
             });
-            // Add filtered tasks
-            tasks.forEach(task => createTaskElement(task));
+
+            // Reset and update tags
+            allTags.clear();
+            tasks.forEach(task => {
+                if (task.tags) {
+                    task.tags.forEach(tag => allTags.add(tag));
+                }
+                createTaskElement(task);
+            });
+
+            // Update tag filters
+            updateTagFilters();
         })
         .catch(error => {
             console.error('Error loading tasks:', error);
             alert('Failed to load tasks. Please refresh the page.');
         });
+}
+
+function updateTagFilters() {
+    const tagFiltersContainer = document.getElementById('tagFilters');
+    tagFiltersContainer.innerHTML = '<span class="me-2">Filter by tag:</span>';
+    
+    allTags.forEach(tag => {
+        const button = document.createElement('button');
+        button.className = 'btn btn-outline-info btn-sm me-2 mb-2';
+        button.textContent = tag;
+        button.onclick = () => filterByTag(tag);
+        tagFiltersContainer.appendChild(button);
+    });
+}
+
+function filterByTag(tag) {
+    loadTasks(document.getElementById('searchInput').value.trim(), 
+              document.querySelector('.btn-group .active').textContent.toLowerCase(),
+              tag);
 }
 
 // Search functionality
@@ -66,6 +99,7 @@ function showAddTask(quadrant) {
     document.getElementById('quadrantInput').value = quadrant;
     document.getElementById('taskInput').value = '';
     document.getElementById('dueDateInput').value = '';
+    document.getElementById('tagsInput').value = '';
     document.getElementById('reminderCheck').checked = false;
     taskModal.show();
 }
@@ -81,6 +115,9 @@ function addTask() {
     const quadrant = document.getElementById('quadrantInput').value;
     const dueDate = document.getElementById('dueDateInput').value;
     const reminderSet = document.getElementById('reminderCheck').checked;
+    const tags = document.getElementById('tagsInput').value.split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
     
     if (!title) {
         alert('Please enter a task title');
@@ -96,7 +133,8 @@ function addTask() {
             title, 
             quadrant, 
             due_date: dueDate,
-            reminder_set: reminderSet
+            reminder_set: reminderSet,
+            tags
         })
     })
     .then(response => {
@@ -108,6 +146,9 @@ function addTask() {
     .then(task => {
         createTaskElement(task);
         taskModal.hide();
+        // Update tag filters
+        task.tags.forEach(tag => allTags.add(tag));
+        updateTagFilters();
     })
     .catch(error => {
         console.error('Error adding task:', error);
@@ -123,11 +164,14 @@ function createTaskElement(task) {
     
     const dueDate = task.due_date ? formatDate(task.due_date) : '';
     const reminderBadge = task.reminder_set ? '<span class="badge bg-info ms-2">⏰</span>' : '';
+    const tagBadges = task.tags ? task.tags.map(tag => 
+        `<span class="badge bg-secondary me-1">${tag}</span>`).join('') : '';
     
     taskElement.innerHTML = `
         <div>
             <span>${task.title}</span>
             ${reminderBadge}
+            <div class="mt-1">${tagBadges}</div>
             ${dueDate ? `<small class="text-muted d-block">${dueDate}</small>` : ''}
         </div>
         <div>

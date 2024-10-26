@@ -11,10 +11,10 @@
     <div class="container mt-4">
         <h1 class="text-center mb-4">Eisenhower Matrix</h1>
         
-        <!-- Search and Filter Section -->
+        <!-- Search, Filter, and Tags Section -->
         <div class="row mb-4">
             <div class="col-md-6">
-                <div class="input-group">
+                <div class="input-group mb-3">
                     <input type="text" id="searchInput" class="form-control" placeholder="Search tasks...">
                     <button class="btn btn-outline-secondary" type="button" onclick="searchTasks()">
                         Search
@@ -22,12 +22,16 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="btn-group w-100" role="group">
+                <div class="btn-group w-100 mb-3" role="group">
                     <button type="button" class="btn btn-outline-secondary active" onclick="filterTasks('all')">All</button>
                     <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('active')">Active</button>
                     <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('completed')">Completed</button>
                     <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('due-soon')">Due Soon</button>
                 </div>
+            </div>
+            <!-- Tag Filter Section -->
+            <div class="col-12 mb-3" id="tagFilters">
+                <!-- Tags will be dynamically added here -->
             </div>
         </div>
         
@@ -84,6 +88,10 @@
                     <div class="mb-3">
                         <label for="dueDateInput" class="form-label">Due Date</label>
                         <input type="datetime-local" id="dueDateInput" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="tagsInput" class="form-label">Tags (comma-separated)</label>
+                        <input type="text" id="tagsInput" class="form-control" placeholder="work, personal, tech">
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="reminderCheck">

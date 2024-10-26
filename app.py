@@ -21,6 +21,7 @@ def index():
 def get_tasks():
     search_query = request.args.get('search', '').lower()
     filter_type = request.args.get('filter', 'all')
+    tag_filter = request.args.get('tag')
 
     # Start with base query
     query = Task.query
@@ -28,6 +29,10 @@ def get_tasks():
     # Apply search filter if provided
     if search_query:
         query = query.filter(Task.title.ilike(f'%{search_query}%'))
+
+    # Apply tag filter if provided
+    if tag_filter:
+        query = query.filter(Task.tags.contains([tag_filter]))
 
     # Apply status filter
     if filter_type == 'completed':
@@ -51,7 +56,8 @@ def get_tasks():
         'quadrant': task.quadrant,
         'completed': task.completed,
         'due_date': task.due_date.isoformat() if task.due_date else None,
-        'reminder_set': task.reminder_set
+        'reminder_set': task.reminder_set,
+        'tags': task.tags or []
     } for task in tasks])
 
 @app.route('/tasks', methods=['POST'])
@@ -69,7 +75,8 @@ def create_task():
             title=data['title'],
             quadrant=data['quadrant'],
             due_date=due_date,
-            reminder_set=data.get('reminder_set', False)
+            reminder_set=data.get('reminder_set', False),
+            tags=data.get('tags', [])
         )
         db.session.add(task)
         db.session.commit()
@@ -80,7 +87,8 @@ def create_task():
             "quadrant": task.quadrant,
             "completed": task.completed,
             "due_date": task.due_date.isoformat() if task.due_date else None,
-            "reminder_set": task.reminder_set
+            "reminder_set": task.reminder_set,
+            "tags": task.tags or []
         })
     except KeyError as e:
         return jsonify({"error": f"Missing required field: {str(e)}"}), 400
@@ -104,6 +112,8 @@ def update_task(task_id):
             task.due_date = datetime.fromisoformat(data['due_date']) if data['due_date'] else None
         if 'reminder_set' in data:
             task.reminder_set = data['reminder_set']
+        if 'tags' in data:
+            task.tags = data['tags']
         
         db.session.commit()
         return jsonify({"success": True})
@@ -121,19 +131,22 @@ def add_sample_tasks():
                 "title": "Complete project deadline",
                 "quadrant": "UI",
                 "due_date": datetime.now().replace(hour=23, minute=59),
-                "reminder_set": True
+                "reminder_set": True,
+                "tags": ["work", "project"]
             },
             {
                 "title": "Submit tax documents",
                 "quadrant": "UI",
                 "due_date": tomorrow.replace(hour=17, minute=0),
-                "reminder_set": True
+                "reminder_set": True,
+                "tags": ["finance", "documents"]
             },
             {
                 "title": "Pay utility bills",
                 "quadrant": "UI",
                 "due_date": tomorrow.replace(hour=12, minute=0),
-                "reminder_set": True
+                "reminder_set": True,
+                "tags": ["finance", "home"]
             },
             
             # Not Urgent & Important tasks
@@ -141,19 +154,22 @@ def add_sample_tasks():
                 "title": "Learn new programming language",
                 "quadrant": "UN",
                 "due_date": None,
-                "reminder_set": False
+                "reminder_set": False,
+                "tags": ["learning", "tech"]
             },
             {
                 "title": "Read programming book",
                 "quadrant": "UN",
                 "due_date": None,
-                "reminder_set": False
+                "reminder_set": False,
+                "tags": ["learning", "tech"]
             },
             {
                 "title": "Plan vacation",
                 "quadrant": "UN",
                 "due_date": next_week.replace(hour=18, minute=0),
-                "reminder_set": False
+                "reminder_set": False,
+                "tags": ["personal", "travel"]
             },
             
             # Urgent & Not Important tasks
@@ -161,19 +177,22 @@ def add_sample_tasks():
                 "title": "Reply to emails",
                 "quadrant": "NI",
                 "due_date": datetime.now().replace(hour=16, minute=30),
-                "reminder_set": True
+                "reminder_set": True,
+                "tags": ["work", "communication"]
             },
             {
                 "title": "Attend company social event",
                 "quadrant": "NI",
                 "due_date": tomorrow.replace(hour=15, minute=0),
-                "reminder_set": True
+                "reminder_set": True,
+                "tags": ["work", "social"]
             },
             {
                 "title": "Schedule routine car maintenance",
                 "quadrant": "NI",
                 "due_date": tomorrow.replace(hour=10, minute=0),
-                "reminder_set": False
+                "reminder_set": False,
+                "tags": ["maintenance", "personal"]
             },
             
             # Not Urgent & Not Important tasks
@@ -181,13 +200,15 @@ def add_sample_tasks():
                 "title": "Organize digital photos",
                 "quadrant": "NN",
                 "due_date": None,
-                "reminder_set": False
+                "reminder_set": False,
+                "tags": ["personal", "organization"]
             },
             {
                 "title": "Clean up downloads folder",
                 "quadrant": "NN",
                 "due_date": None,
-                "reminder_set": False
+                "reminder_set": False,
+                "tags": ["tech", "organization"]
             }
         ]
         
