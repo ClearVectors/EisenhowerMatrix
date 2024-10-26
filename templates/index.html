@@ -17,7 +17,10 @@
                 <li><a class="dropdown-item" href="#" onclick="exportTasks()">Export</a></li>
             </ul>
         </div>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+        <button type="button" class="btn btn-primary add-task-btn" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+            </svg>
             Add Task
         </button>
     </div>
@@ -27,33 +30,21 @@
     <div class="matrix-quadrant urgent-important">
         <h2 class="quadrant-header">Urgent & Important</h2>
         <div id="urgent-important" class="task-list"></div>
-        <button class="btn btn-outline-secondary mt-3" onclick="showAddTaskModal('urgent-important')">
-            + Add Task
-        </button>
     </div>
 
     <div class="matrix-quadrant not-urgent-important">
         <h2 class="quadrant-header">Not Urgent & Important</h2>
         <div id="not-urgent-important" class="task-list"></div>
-        <button class="btn btn-outline-secondary mt-3" onclick="showAddTaskModal('not-urgent-important')">
-            + Add Task
-        </button>
     </div>
 
     <div class="matrix-quadrant urgent-not-important">
         <h2 class="quadrant-header">Urgent & Not Important</h2>
         <div id="urgent-not-important" class="task-list"></div>
-        <button class="btn btn-outline-secondary mt-3" onclick="showAddTaskModal('urgent-not-important')">
-            + Add Task
-        </button>
     </div>
 
     <div class="matrix-quadrant not-urgent-not-important">
         <h2 class="quadrant-header">Not Urgent & Not Important</h2>
         <div id="not-urgent-not-important" class="task-list"></div>
-        <button class="btn btn-outline-secondary mt-3" onclick="showAddTaskModal('not-urgent-not-important')">
-            + Add Task
-        </button>
     </div>
 </div>
 
