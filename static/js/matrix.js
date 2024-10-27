@@ -29,6 +29,53 @@ function showToast(message, type = 'success') {
     });
 }
 
+// Task Card Creation
+function createTaskCard(task) {
+    const dueDate = new Date(task.due_date);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekFromNow = new Date(today);
+    weekFromNow.setDate(today.getDate() + 7);
+
+    let statusClass = 'task-future';
+    if (dueDate < now) {
+        statusClass = 'task-overdue';
+    } else if (dueDate < new Date(today.getTime() + 24 * 60 * 60 * 1000)) {
+        statusClass = 'task-due-today';
+    } else if (dueDate <= weekFromNow) {
+        statusClass = 'task-due-this-week';
+    }
+
+    return `
+        <div class="task-card ${statusClass} ${task.completed ? 'task-completed' : ''}" 
+             data-task-id="${task.id}" draggable="true">
+            <div class="task-header d-flex justify-content-between align-items-start">
+                <h5 class="task-title mb-2">${task.title}</h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editTask(${task.id})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteTask(${task.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <p class="task-description mb-2">${task.description || ''}</p>
+            <div class="task-footer d-flex justify-content-between align-items-center">
+                <span class="category-badge category-${task.category}">
+                    <i class="bi category-icon"></i>
+                    ${task.category}
+                </span>
+                <span class="task-due-date">
+                    <i class="bi bi-calendar"></i>
+                    ${new Date(task.due_date).toLocaleDateString()}
+                </span>
+            </div>
+            <div class="status-indicator status-${statusClass.replace('task-', '')}"></div>
+        </div>
+    `;
+}
+
 // Category Management Functions
 function loadCategories() {
     const categoryList = document.getElementById('categoryList');
@@ -48,7 +95,7 @@ function loadCategories() {
         .catch(error => {
             console.error('Error:', error);
             categoryList.innerHTML = '<div class="alert alert-danger">Failed to load categories</div>';
-            showToast('Failed to load categories', 'error');
+            showToast('Failed to load categories', 'danger');
         });
 }
 
@@ -71,6 +118,7 @@ function createCategoryListItem(category) {
     `;
 }
 
+// Category form management
 function showAddCategoryForm() {
     document.getElementById('categoryList').style.display = 'none';
     document.getElementById('addCategoryForm').style.display = 'block';
@@ -86,10 +134,7 @@ function showEditCategoryForm(categoryId) {
     fetch(`/categories/${categoryId}`)
         .then(response => {
             if (!response.ok) {
-                if (response.status === 405) {
-                    throw new Error('Category editing is not available');
-                }
-                throw new Error(`Failed to load category: ${response.statusText}`);
+                throw new Error(response.status === 404 ? 'Category not found' : 'Failed to load category');
             }
             return response.json();
         })
@@ -104,8 +149,7 @@ function showEditCategoryForm(categoryId) {
         })
         .catch(error => {
             console.error('Error loading category:', error);
-            showToast(error.message || 'Failed to load category details', 'error');
-            hideEditCategoryForm();
+            showToast(error.message, 'danger');
         });
 }
 
@@ -115,13 +159,14 @@ function hideEditCategoryForm() {
     document.getElementById('categoryList').style.display = 'block';
 }
 
+// Category CRUD operations
 function addCategory() {
     const name = document.getElementById('categoryName').value.trim();
     const color = document.getElementById('categoryColor').value;
     const icon = document.getElementById('categoryIcon').value;
 
     if (!name || !color || !icon) {
-        showToast('Please fill in all required fields', 'error');
+        showToast('Please fill in all required fields', 'danger');
         return;
     }
 
@@ -142,7 +187,7 @@ function addCategory() {
             if (response.status === 400) {
                 throw new Error('Category name must be unique');
             }
-            throw new Error(`Failed to add category: ${response.statusText}`);
+            throw new Error('Failed to add category');
         }
         return response.json();
     })
@@ -153,88 +198,13 @@ function addCategory() {
     })
     .catch(error => {
         console.error('Error adding category:', error);
-        showToast(error.message || 'Failed to add category', 'error');
+        showToast(error.message, 'danger');
     })
     .finally(() => {
         addButton.disabled = false;
         addButton.innerHTML = originalText;
     });
 }
-
-function updateCategory() {
-    const id = document.getElementById('editCategoryId').value;
-    const name = document.getElementById('editCategoryName').value.trim();
-    const color = document.getElementById('editCategoryColor').value;
-    const icon = document.getElementById('editCategoryIcon').value;
-
-    if (!name || !color || !icon) {
-        showToast('Please fill in all required fields', 'error');
-        return;
-    }
-
-    const saveButton = document.querySelector('#editCategoryForm .btn-primary');
-    const originalText = saveButton.textContent;
-    saveButton.disabled = true;
-    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
-
-    fetch(`/categories/${id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, color, icon })
-    })
-    .then(response => {
-        if (!response.ok) {
-            if (response.status === 400) {
-                throw new Error('Category name must be unique');
-            }
-            throw new Error(`Failed to update category: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        showToast('Category updated successfully');
-        hideEditCategoryForm();
-        loadCategories();
-    })
-    .catch(error => {
-        console.error('Error updating category:', error);
-        showToast(error.message || 'Failed to update category', 'error');
-    })
-    .finally(() => {
-        saveButton.disabled = false;
-        saveButton.innerHTML = originalText;
-    });
-}
-
-function deleteCategory(categoryId) {
-    if (!confirm('Are you sure you want to delete this category?')) return;
-
-    fetch(`/categories/${categoryId}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`Failed to delete category: ${response.statusText}`);
-        return response.json();
-    })
-    .then(data => {
-        showToast('Category deleted successfully');
-        loadCategories();
-    })
-    .catch(error => {
-        console.error('Error deleting category:', error);
-        showToast(error.message || 'Failed to delete category', 'error');
-    });
-}
-
-// Initialize categories when modal is shown
-document.getElementById('categoriesModal').addEventListener('show.bs.modal', function () {
-    loadCategories();
-});
 
 // Task Management Functions
 function loadTasks() {
@@ -249,7 +219,7 @@ function loadTasks() {
         })
         .catch(error => {
             console.error('Error loading tasks:', error);
-            showToast('Failed to load tasks', 'error');
+            showToast('Failed to load tasks', 'danger');
         });
 }
 
@@ -264,14 +234,18 @@ function updateTasksUI(tasks) {
     // Clear existing tasks
     Object.values(quadrants).forEach(quadrant => {
         if (quadrant) {
+            const title = quadrant.querySelector('.quadrant-title');
             quadrant.innerHTML = '';
+            if (title) quadrant.appendChild(title);
         }
     });
 
     // Add tasks to their respective quadrants
     tasks.forEach(task => {
         if (quadrants[task.quadrant]) {
-            quadrants[task.quadrant].innerHTML += createTaskCard(task);
+            const taskElement = document.createElement('div');
+            taskElement.innerHTML = createTaskCard(task);
+            quadrants[task.quadrant].appendChild(taskElement.firstElementChild);
         }
     });
 }
@@ -293,6 +267,11 @@ function filterTasks(filter = 'all') {
         })
         .catch(error => {
             console.error('Error filtering tasks:', error);
-            showToast('Failed to filter tasks', 'error');
+            showToast('Failed to filter tasks', 'danger');
         });
 }
+
+// Initialize categories when modal is shown
+document.getElementById('categoriesModal').addEventListener('show.bs.modal', function () {
+    loadCategories();
+});
