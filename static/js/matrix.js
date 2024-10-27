@@ -271,7 +271,82 @@ function filterTasks(filter = 'all') {
         });
 }
 
-// Initialize categories when modal is shown
+// Add Task function
+function addTask() {
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDescription').value.trim();
+    const category = document.getElementById('taskCategory').value;
+    const quadrant = document.getElementById('taskQuadrant').value;
+    const dueDate = document.getElementById('taskDueDate').value;
+
+    if (!title || !category || !quadrant || !dueDate) {
+        showToast('Please fill in all required fields', 'danger');
+        return;
+    }
+
+    const addButton = document.querySelector('#addTaskModal .btn-primary');
+    const originalText = addButton.textContent;
+    addButton.disabled = true;
+    addButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
+
+    fetch('/tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title,
+            description,
+            category,
+            quadrant,
+            due_date: dueDate
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to add task');
+        return response.json();
+    })
+    .then(task => {
+        showToast('Task added successfully');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addTaskModal'));
+        modal.hide();
+        document.getElementById('taskForm').reset();
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to add task: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        addButton.disabled = false;
+        addButton.innerHTML = originalText;
+    });
+}
+
+// Initialize categories when Add Task modal is shown
+document.getElementById('addTaskModal').addEventListener('show.bs.modal', function () {
+    const categorySelect = document.getElementById('taskCategory');
+    categorySelect.innerHTML = '<option value="">Loading categories...</option>';
+    categorySelect.disabled = true;
+
+    fetch('/categories')
+        .then(response => response.json())
+        .then(categories => {
+            categorySelect.innerHTML = '<option value="">Select category</option>';
+            categories.forEach(category => {
+                categorySelect.innerHTML += `<option value="${category.name}">${category.name}</option>`;
+            });
+        })
+        .catch(error => {
+            console.error('Error loading categories:', error);
+            categorySelect.innerHTML = '<option value="">Failed to load categories</option>';
+        })
+        .finally(() => {
+            categorySelect.disabled = false;
+        });
+});
+
+// Initialize categories when Categories modal is shown
 document.getElementById('categoriesModal').addEventListener('show.bs.modal', function () {
     loadCategories();
 });
