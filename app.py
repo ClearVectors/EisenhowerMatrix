@@ -1,7 +1,7 @@
 from flask import Flask, render_template, jsonify, request, make_response
 from datetime import datetime, timedelta
 import os
-from models import db, Task
+from models import db, Task, Category
 from io import StringIO
 import csv
 import time
@@ -9,7 +9,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__)
 
-# Database configuration with proper SSL and connection pooling
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -32,7 +31,7 @@ def with_retry(func, max_retries=3):
                 retry_count += 1
                 if retry_count == max_retries:
                     raise
-                time.sleep(1)  # Wait before retrying
+                time.sleep(1)
     return wrapper
 
 def _export_tasks():
@@ -269,6 +268,90 @@ def _delete_task(task_id):
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     return with_retry(_delete_task)(task_id)
+
+@app.route('/categories', methods=['GET'])
+def get_categories():
+    try:
+        categories = Category.query.all()
+        return jsonify([{
+            'id': cat.id,
+            'name': cat.name,
+            'color': cat.color,
+            'icon': cat.icon
+        } for cat in categories])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/categories', methods=['POST'])
+def create_category():
+    try:
+        data = request.get_json()
+        if not data or not all(k in data for k in ['name', 'color', 'icon']):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        category = Category(
+            name=data['name'].strip(),
+            color=data['color'].strip(),
+            icon=data['icon'].strip()
+        )
+        db.session.add(category)
+        db.session.commit()
+
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'color': category.color,
+            'icon': category.icon
+        }), 201
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'error': 'Category name must be unique'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/categories/<int:category_id>', methods=['PUT'])
+def update_category(category_id):
+    try:
+        category = Category.query.get_or_404(category_id)
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        if 'name' in data:
+            category.name = data['name'].strip()
+        if 'color' in data:
+            category.color = data['color'].strip()
+        if 'icon' in data:
+            category.icon = data['icon'].strip()
+
+        db.session.commit()
+        
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'color': category.color,
+            'icon': category.icon,
+            'message': 'Category updated successfully'
+        })
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'error': 'Category name must be unique'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/categories/<int:category_id>', methods=['DELETE'])
+def delete_category(category_id):
+    try:
+        category = Category.query.get_or_404(category_id)
+        db.session.delete(category)
+        db.session.commit()
+        return jsonify({'message': 'Category deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 with app.app_context():
     db.create_all()
