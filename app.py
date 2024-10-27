@@ -1,12 +1,46 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, make_response
 from datetime import datetime, timedelta
 import os
 from models import db, Task
+from io import StringIO
+import csv
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+
+@app.route('/tasks/export', methods=['GET'])
+def export_tasks():
+    # Create a StringIO object to write CSV data
+    si = StringIO()
+    writer = csv.writer(si)
+    
+    # Write header
+    writer.writerow(['Title', 'Description', 'Category', 'Due Date', 'Quadrant', 'Completed'])
+    
+    # Get all tasks and write to CSV
+    tasks = Task.query.all()
+    for task in tasks:
+        writer.writerow([
+            task.title,
+            task.description,
+            task.category,
+            task.due_date.strftime('%Y-%m-%d'),
+            task.quadrant,
+            'Yes' if task.completed else 'No'
+        ])
+    
+    # Create the response
+    output = si.getvalue()
+    si.close()
+    
+    # Set up response headers for file download
+    response = make_response(output)
+    response.headers['Content-Disposition'] = 'attachment; filename=eisenhower_tasks.csv'
+    response.headers['Content-type'] = 'text/csv'
+    
+    return response
 
 def add_sample_tasks():
     # Clear existing tasks
@@ -14,7 +48,6 @@ def add_sample_tasks():
     
     # Sample tasks data
     tasks = [
-        # Existing tasks
         {
             'title': 'Health Checkup',
             'description': 'Annual medical examination',
@@ -42,49 +75,6 @@ def add_sample_tasks():
             'category': 'Health',
             'due_date': datetime.now() + timedelta(days=9),
             'quadrant': 'not-urgent-not-important'
-        },
-        # New tasks
-        {
-            'title': 'Project Deadline',
-            'description': 'Complete project deliverables for client presentation',
-            'category': 'Work',
-            'due_date': datetime.now() + timedelta(days=2),
-            'quadrant': 'urgent-important'
-        },
-        {
-            'title': 'Weekly Planning',
-            'description': 'Plan next week\'s activities and goals',
-            'category': 'Work',
-            'due_date': datetime.now() + timedelta(days=5),
-            'quadrant': 'not-urgent-important'
-        },
-        {
-            'title': 'Grocery Shopping',
-            'description': 'Buy groceries for the week',
-            'category': 'Shopping',
-            'due_date': datetime.now() + timedelta(days=1),
-            'quadrant': 'urgent-not-important'
-        },
-        {
-            'title': 'Read Design Book',
-            'description': 'Study UX design principles',
-            'category': 'Learning',
-            'due_date': datetime.now() + timedelta(days=7),
-            'quadrant': 'not-urgent-important'
-        },
-        {
-            'title': 'Gym Session',
-            'description': 'Complete weekly workout routine',
-            'category': 'Health',
-            'due_date': datetime.now() + timedelta(days=3),
-            'quadrant': 'not-urgent-important'
-        },
-        {
-            'title': 'Birthday Gift',
-            'description': 'Buy birthday gift for friend',
-            'category': 'Personal',
-            'due_date': datetime.now() + timedelta(days=2),
-            'quadrant': 'urgent-not-important'
         }
     ]
     
