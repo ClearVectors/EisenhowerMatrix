@@ -1,132 +1,106 @@
-// Global tasks array
 let tasks = [];
+let toastTimeout;
 
-// Toast notification function
 function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-    
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    
-    document.body.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-    
-    toast.addEventListener('hidden.bs.toast', () => {
-        document.body.removeChild(toast);
-    });
-}
-
-// Task Card Creation
-function createTaskCard(task) {
-    const dueDate = new Date(task.due_date);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekFromNow = new Date(today);
-    weekFromNow.setDate(today.getDate() + 7);
-
-    let statusClass = 'task-future';
-    if (dueDate < now) {
-        statusClass = 'task-overdue';
-    } else if (dueDate < new Date(today.getTime() + 24 * 60 * 60 * 1000)) {
-        statusClass = 'task-due-today';
-    } else if (dueDate <= weekFromNow) {
-        statusClass = 'task-due-this-week';
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
     }
 
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast position-fixed bottom-0 end-0 m-4 ${type === 'error' ? 'bg-danger' : 'bg-success'} text-white`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="toast-body d-flex align-items-center">
+            <span>${message}</span>
+            <button type="button" class="btn-close btn-close-white ms-3" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    toastTimeout = setTimeout(() => toast.remove(), 3000);
+}
+
+function getDueStatus(dueDate) {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'overdue';
+    if (diffDays === 0) return 'due-today';
+    if (diffDays <= 7) return 'due-this-week';
+    return 'future';
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        'Health': 'bi-heart-pulse',
+        'Work': 'bi-briefcase',
+        'Personal': 'bi-person',
+        'Learning': 'bi-book',
+        'Shopping': 'bi-cart'
+    };
+    return icons[category] || 'bi-tag';
+}
+
+function createTaskCard(task) {
+    const dueDate = new Date(task.due_date);
+    const dueStatus = getDueStatus(dueDate);
+    const formattedDueDate = dueDate.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+    
+    const categoryIcon = getCategoryIcon(task.category);
+    const statusClass = `task-${dueStatus}`;
+    const completedClass = task.completed ? 'task-completed' : '';
+
     return `
-        <div class="task-card ${statusClass} ${task.completed ? 'task-completed' : ''}" 
-             data-task-id="${task.id}" draggable="true">
-            <div class="task-header d-flex justify-content-between align-items-start">
-                <h5 class="task-title mb-2">${task.title}</h5>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editTask(${task.id})">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteTask(${task.id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </div>
-            <p class="task-description mb-2">${task.description || ''}</p>
-            <div class="task-footer d-flex justify-content-between align-items-center">
+        <div class="task-card ${statusClass} ${completedClass}"
+             draggable="true"
+             data-task-id="${task.id}"
+             ondragstart="handleDragStart(event)"
+             ondragend="handleDragEnd(event)">
+            <div class="status-indicator status-${dueStatus}"></div>
+            <h5>${task.title}</h5>
+            <p>${task.description || ''}</p>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <span class="category-badge category-${task.category}">
-                    <i class="bi category-icon"></i>
+                    <i class="bi ${categoryIcon} category-icon"></i>
                     ${task.category}
                 </span>
                 <span class="task-due-date">
-                    <i class="bi bi-calendar"></i>
-                    ${new Date(task.due_date).toLocaleDateString()}
+                    <i class="bi bi-calendar-event"></i>
+                    ${formattedDueDate}
                 </span>
             </div>
-            <div class="status-indicator status-${statusClass.replace('task-', '')}"></div>
+            <div class="task-actions mt-3">
+                <button class="btn btn-outline-secondary btn-sm" 
+                        onclick="showEditTaskModal(${task.id})" 
+                        title="Edit task">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-${task.completed ? 'warning' : 'success'} btn-sm" 
+                        onclick="toggleTaskCompletion(${task.id}, ${task.completed})"
+                        title="${task.completed ? 'Mark as incomplete' : 'Mark as complete'}">
+                    <i class="bi bi-${task.completed ? 'arrow-counterclockwise' : 'check-lg'}"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" 
+                        onclick="deleteTask(${task.id})"
+                        title="Delete task">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
         </div>
     `;
 }
 
-// Task Management Functions
-function loadTasks() {
-    const matrixRoot = document.getElementById('matrix-root');
-    if (!matrixRoot) {
-        console.error('Matrix root element not found');
-        showToast('Error: Matrix container not found', 'danger');
-        return;
-    }
-
-    // Show loading state in each quadrant
-    const quadrants = ['urgent-important', 'not-urgent-important', 'urgent-not-important', 'not-urgent-not-important'];
-    quadrants.forEach(quadrant => {
-        const element = document.getElementById(quadrant);
-        if (element) {
-            const title = element.querySelector('.quadrant-title');
-            const titleHtml = title ? title.outerHTML : '';
-            element.innerHTML = `
-                ${titleHtml}
-                <div class="loading-spinner">
-                    <div class="spinner-border text-secondary"></div>
-                    <div class="loading-text">Loading tasks...</div>
-                </div>
-            `;
-        }
-    });
-
-    fetch('/tasks')
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(tasksData => {
-            tasks = tasksData;
-            updateTasksUI(tasks);
-        })
-        .catch(error => {
-            console.error('Error loading tasks:', error);
-            showToast('Failed to load tasks', 'danger');
-            quadrants.forEach(quadrant => {
-                const element = document.getElementById(quadrant);
-                if (element) {
-                    const title = element.querySelector('.quadrant-title');
-                    const titleHtml = title ? title.outerHTML : '';
-                    element.innerHTML = `
-                        ${titleHtml}
-                        <div class="alert alert-danger m-3">
-                            Failed to load tasks. Please try refreshing the page.
-                        </div>
-                    `;
-                }
-            });
-        });
-}
-
-function updateTasksUI(tasks) {
+function loadTasks(filter = 'all') {
     const quadrants = {
         'urgent-important': document.getElementById('urgent-important'),
         'not-urgent-important': document.getElementById('not-urgent-important'),
@@ -134,129 +108,302 @@ function updateTasksUI(tasks) {
         'not-urgent-not-important': document.getElementById('not-urgent-not-important')
     };
 
-    // Clear existing tasks while preserving titles
     Object.values(quadrants).forEach(quadrant => {
-        if (quadrant) {
-            const title = quadrant.querySelector('.quadrant-title');
-            quadrant.innerHTML = title ? title.outerHTML : '';
-        }
+        quadrant.innerHTML = '<div class="task-list-loading"><div class="spinner-border text-secondary"></div></div>';
     });
 
-    // Add tasks to their respective quadrants
-    tasks.forEach(task => {
-        const quadrant = quadrants[task.quadrant];
-        if (quadrant) {
-            const taskElement = document.createElement('div');
-            taskElement.innerHTML = createTaskCard(task);
-            const taskCard = taskElement.firstElementChild;
-            if (taskCard) {
-                quadrant.appendChild(taskCard);
-                initializeDragAndDrop(taskCard);
-            }
-        }
-    });
+    Promise.all([
+        fetch('/tasks').then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        }),
+        fetch(`/tasks?filter=${filter}`).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+    ])
+    .then(([allTasks, filteredTasks]) => {
+        tasks = allTasks;
+        console.log('Tasks loaded:', tasks);
 
-    // Show empty state if no tasks in quadrant
-    Object.entries(quadrants).forEach(([quadrantId, element]) => {
-        if (element) {
-            const tasks = element.querySelectorAll('.task-card');
-            if (tasks.length === 0) {
-                const emptyState = document.createElement('div');
-                emptyState.className = 'text-center text-muted py-3';
-                emptyState.innerHTML = 'No tasks yet';
-                element.appendChild(emptyState);
+        Object.values(quadrants).forEach(quadrant => {
+            quadrant.innerHTML = '';
+        });
+
+        filteredTasks.forEach(task => {
+            if (quadrants[task.quadrant]) {
+                quadrants[task.quadrant].innerHTML += createTaskCard(task);
             }
-        }
+        });
+
+        document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
+            quadrant.ondragover = handleDragOver;
+            quadrant.ondragenter = handleDragEnter;
+            quadrant.ondragleave = handleDragLeave;
+            quadrant.ondrop = handleDrop;
+        });
+    })
+    .catch(error => {
+        console.error('Error loading tasks:', error);
+        Object.values(quadrants).forEach(quadrant => {
+            quadrant.innerHTML = '<div class="alert alert-danger">Failed to load tasks. Please refresh the page to try again.</div>';
+        });
+        showToast('Failed to load tasks', 'error');
     });
 }
 
-// Initialize drag and drop
-function initializeDragAndDrop(taskElement) {
-    if (!taskElement) return;
-
-    taskElement.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
-        e.target.classList.add('dragging');
-    });
-
-    taskElement.addEventListener('dragend', (e) => {
-        e.target.classList.remove('dragging');
-    });
-}
-
-// Add Task function
 function addTask() {
-    const elements = {
-        title: document.getElementById('taskTitle'),
-        description: document.getElementById('taskDescription'),
-        category: document.getElementById('taskCategory'),
-        quadrant: document.getElementById('taskQuadrant'),
-        dueDate: document.getElementById('taskDueDate')
-    };
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDescription').value.trim();
+    const category = document.getElementById('taskCategory').value;
+    const dueDate = document.getElementById('taskDueDate').value;
+    const quadrant = document.getElementById('taskQuadrant').value;
 
-    const data = {
-        title: elements.title?.value.trim(),
-        description: elements.description?.value.trim(),
-        category: elements.category?.value,
-        quadrant: elements.quadrant?.value,
-        due_date: elements.dueDate?.value
-    };
-
-    if (!data.title || !data.category || !data.quadrant || !data.due_date) {
-        showToast('Please fill in all required fields', 'danger');
+    // Validate required fields
+    if (!title || !dueDate || !quadrant) {
+        showToast('Please fill in all required fields', 'error');
         return;
     }
 
+    // Show loading state
     const addButton = document.querySelector('#addTaskModal .btn-primary');
-    if (!addButton) return;
-
     const originalText = addButton.textContent;
     addButton.disabled = true;
-    addButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
+    addButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
 
     fetch('/tasks', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+            title,
+            description,
+            category,
+            due_date: dueDate,
+            quadrant
+        })
     })
     .then(response => {
-        if (!response.ok) throw new Error('Failed to add task');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
     })
-    .then(task => {
+    .then(data => {
         showToast('Task added successfully');
         const modal = bootstrap.Modal.getInstance(document.getElementById('addTaskModal'));
-        if (modal) modal.hide();
-        const taskForm = document.getElementById('taskForm');
-        if (taskForm) taskForm.reset();
-        loadTasks();
+        modal.hide();
+        document.getElementById('taskForm').reset();
+        loadTasks();  // Refresh task list
     })
     .catch(error => {
-        console.error('Error:', error);
-        showToast('Failed to add task: ' + error.message, 'danger');
+        console.error('Error adding task:', error);
+        showToast('Failed to add task: ' + error.message, 'error');
     })
     .finally(() => {
+        // Reset button state
         addButton.disabled = false;
-        addButton.innerHTML = originalText;
+        addButton.textContent = originalText;
     });
 }
 
-// Filter functionality
-function filterTasks(filter = 'all') {
-    fetch(`/tasks?filter=${filter}`)
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
+function toggleTaskCompletion(taskId, currentStatus) {
+    fetch(`/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            completed: !currentStatus
         })
-        .then(filteredTasks => {
-            updateTasksUI(filteredTasks);
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast(`Task marked as ${!currentStatus ? 'complete' : 'incomplete'}`);
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error updating task:', error);
+        showToast('Failed to update task status', 'error');
+    });
+}
+
+function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+
+    fetch(`/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task deleted successfully');
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error deleting task:', error);
+        showToast('Failed to delete task', 'error');
+    });
+}
+
+function showEditTaskModal(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+        showToast('Task not found', 'error');
+        return;
+    }
+
+    document.getElementById('editTaskId').value = task.id;
+    document.getElementById('editTaskTitle').value = task.title;
+    document.getElementById('editTaskDescription').value = task.description || '';
+    document.getElementById('editTaskCategory').value = task.category;
+    document.getElementById('editTaskQuadrant').value = task.quadrant;
+    
+    // Format date for input
+    const dueDate = new Date(task.due_date);
+    const formattedDate = dueDate.toISOString().split('T')[0];
+    document.getElementById('editTaskDueDate').value = formattedDate;
+
+    const editModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+    editModal.show();
+}
+
+function updateTask() {
+    const taskId = document.getElementById('editTaskId').value;
+    const title = document.getElementById('editTaskTitle').value.trim();
+    const description = document.getElementById('editTaskDescription').value.trim();
+    const category = document.getElementById('editTaskCategory').value;
+    const dueDate = document.getElementById('editTaskDueDate').value;
+    const quadrant = document.getElementById('editTaskQuadrant').value;
+
+    if (!title || !dueDate || !quadrant) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    // Show loading state
+    const saveButton = document.querySelector('#editTaskModal .btn-primary');
+    const originalText = saveButton.textContent;
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+    fetch(`/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title,
+            description,
+            category,
+            due_date: dueDate,
+            quadrant
         })
-        .catch(error => {
-            console.error('Error filtering tasks:', error);
-            showToast('Failed to filter tasks', 'danger');
-        });
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task updated successfully');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
+        modal.hide();
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error updating task:', error);
+        showToast('Failed to update task: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.disabled = false;
+        saveButton.textContent = originalText;
+    });
+}
+
+// Drag and drop functionality
+function handleDragStart(event) {
+    const taskId = parseInt(event.target.dataset.taskId);
+    draggedTask = tasks.find(t => t.id === taskId);
+    if (!draggedTask) return;
+
+    event.target.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', taskId);
+
+    requestAnimationFrame(() => {
+        event.target.style.opacity = '0.5';
+        event.target.style.transform = 'scale(0.95) rotate(-1deg)';
+    });
+}
+
+function handleDragEnd(event) {
+    event.target.classList.remove('dragging');
+    event.target.style.opacity = '';
+    event.target.style.transform = '';
+
+    document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
+        quadrant.classList.remove('drag-over');
+    });
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+}
+
+function handleDragEnter(event) {
+    const quadrant = event.target.closest('.matrix-quadrant');
+    if (quadrant) {
+        quadrant.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(event) {
+    const quadrant = event.target.closest('.matrix-quadrant');
+    if (quadrant) {
+        quadrant.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    
+    const quadrant = event.target.closest('.matrix-quadrant');
+    if (!quadrant) return;
+
+    const taskId = event.dataTransfer.getData('text/plain');
+    const newQuadrant = quadrant.querySelector('.task-list').id;
+
+    fetch(`/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            quadrant: newQuadrant
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task moved successfully');
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error moving task:', error);
+        showToast('Failed to move task', 'error');
+        loadTasks();
+    });
 }
 
 // Export functionality
@@ -264,100 +411,12 @@ function exportTasks() {
     window.location.href = '/tasks/export';
 }
 
-// Initialize drop zones
-function initializeDropZones() {
-    document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
-        if (!quadrant) return;
-
-        quadrant.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.currentTarget.classList.add('drag-over');
-        });
-
-        quadrant.addEventListener('dragleave', (e) => {
-            e.currentTarget.classList.remove('drag-over');
-        });
-
-        quadrant.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.currentTarget.classList.remove('drag-over');
-            
-            const taskId = e.dataTransfer.getData('text/plain');
-            const newQuadrant = e.currentTarget.id;
-            
-            if (!taskId || !newQuadrant) return;
-
-            fetch(`/tasks/${taskId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ quadrant: newQuadrant })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to update task');
-                return response.json();
-            })
-            .then(() => {
-                loadTasks();
-                showToast('Task moved successfully');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Failed to move task', 'danger');
-            });
-        });
-    });
+// Filter functionality
+function filterTasks(filter = 'all') {
+    loadTasks(filter);
 }
 
-// Initialize application
-function initializeApp() {
-    // Initialize matrix container
-    const matrixRoot = document.getElementById('matrix-root');
-    if (!matrixRoot) {
-        console.error('Matrix root element not found');
-        showToast('Error: Matrix container not found', 'danger');
-        return;
-    }
-
-    // Initialize drop zones
-    initializeDropZones();
-
-    // Load initial tasks
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
     loadTasks();
-    
-    // Initialize Add Task modal events
-    const addTaskModal = document.getElementById('addTaskModal');
-    if (addTaskModal) {
-        addTaskModal.addEventListener('show.bs.modal', function () {
-            const categorySelect = document.getElementById('taskCategory');
-            if (!categorySelect) return;
-
-            categorySelect.innerHTML = '<option value="">Loading categories...</option>';
-            categorySelect.disabled = true;
-
-            fetch('/categories')
-                .then(response => response.json())
-                .then(categories => {
-                    categorySelect.innerHTML = '<option value="">Select category</option>';
-                    categories.forEach(category => {
-                        categorySelect.innerHTML += `<option value="${category.name}">${category.name}</option>`;
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading categories:', error);
-                    categorySelect.innerHTML = '<option value="">Failed to load categories</option>';
-                })
-                .finally(() => {
-                    categorySelect.disabled = false;
-                });
-        });
-    }
-}
-
-// Initialize when DOM is loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
-}
+});

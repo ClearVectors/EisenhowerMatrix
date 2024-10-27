@@ -17,32 +17,34 @@
                 <li><a class="dropdown-item" href="#" onclick="exportTasks()">Export</a></li>
             </ul>
         </div>
-        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#categoriesModal">
-            <i class="bi bi-tags"></i> Categories
-        </button>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-            <i class="bi bi-plus-lg"></i> Add Task
+        <button type="button" class="btn btn-primary add-task-btn" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+            </svg>
+            Add Task
         </button>
     </div>
 </div>
 
-<div id="matrix-root">
-    <div class="matrix-container">
-        <div id="urgent-important" class="matrix-quadrant" data-quadrant="urgent-important">
-            <h2 class="quadrant-title">Urgent & Important</h2>
-        </div>
-        
-        <div id="not-urgent-important" class="matrix-quadrant" data-quadrant="not-urgent-important">
-            <h2 class="quadrant-title">Not Urgent & Important</h2>
-        </div>
-        
-        <div id="urgent-not-important" class="matrix-quadrant" data-quadrant="urgent-not-important">
-            <h2 class="quadrant-title">Urgent & Not Important</h2>
-        </div>
-        
-        <div id="not-urgent-not-important" class="matrix-quadrant" data-quadrant="not-urgent-not-important">
-            <h2 class="quadrant-title">Not Urgent & Not Important</h2>
-        </div>
+<div class="matrix-container">
+    <div class="matrix-quadrant urgent-important">
+        <h2 class="quadrant-header">Urgent & Important</h2>
+        <div id="urgent-important" class="task-list"></div>
+    </div>
+
+    <div class="matrix-quadrant not-urgent-important">
+        <h2 class="quadrant-header">Not Urgent & Important</h2>
+        <div id="not-urgent-important" class="task-list"></div>
+    </div>
+
+    <div class="matrix-quadrant urgent-not-important">
+        <h2 class="quadrant-header">Urgent & Not Important</h2>
+        <div id="urgent-not-important" class="task-list"></div>
+    </div>
+
+    <div class="matrix-quadrant not-urgent-not-important">
+        <h2 class="quadrant-header">Not Urgent & Not Important</h2>
+        <div id="not-urgent-not-important" class="task-list"></div>
     </div>
 </div>
 
@@ -62,27 +64,31 @@
                     </div>
                     <div class="mb-3">
                         <label for="taskDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="taskDescription" rows="3"></textarea>
+                        <textarea class="form-control" id="taskDescription"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="taskCategory" class="form-label">Category</label>
-                        <select class="form-select" id="taskCategory" required>
-                            <option value="">Select category</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="taskQuadrant" class="form-label">Quadrant</label>
-                        <select class="form-select" id="taskQuadrant" required>
-                            <option value="">Select quadrant</option>
-                            <option value="urgent-important">Urgent & Important</option>
-                            <option value="not-urgent-important">Not Urgent & Important</option>
-                            <option value="urgent-not-important">Urgent & Not Important</option>
-                            <option value="not-urgent-not-important">Not Urgent & Not Important</option>
+                        <select class="form-select" id="taskCategory">
+                            <option value="Work">Work</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Health">Health</option>
+                            <option value="Learning">Learning</option>
+                            <option value="Shopping">Shopping</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label for="taskDueDate" class="form-label">Due Date</label>
                         <input type="date" class="form-control" id="taskDueDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskQuadrant" class="form-label">Quadrant</label>
+                        <select class="form-select" id="taskQuadrant" required>
+                            <option value="">Select a quadrant</option>
+                            <option value="urgent-important">Urgent & Important</option>
+                            <option value="not-urgent-important">Not Urgent & Important</option>
+                            <option value="urgent-not-important">Urgent & Not Important</option>
+                            <option value="not-urgent-not-important">Not Urgent & Not Important</option>
+                        </select>
                     </div>
                 </form>
             </div>
@@ -94,89 +100,53 @@
     </div>
 </div>
 
-<!-- Categories Modal -->
-<div class="modal fade" id="categoriesModal" tabindex="-1">
+<!-- Edit Task Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Manage Categories</h5>
+                <h5 class="modal-title">Edit Task</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <button type="button" class="btn btn-primary" onclick="showAddCategoryForm()">
-                        <i class="bi bi-plus-lg"></i> Add Category
-                    </button>
-                </div>
-                
-                <div id="categoryList" class="list-group">
-                    <!-- Categories will be loaded here -->
-                </div>
-
-                <!-- Add Category Form -->
-                <div id="addCategoryForm" style="display: none;">
-                    <h6 class="mb-3">Add New Category</h6>
-                    <form id="categoryForm" class="mb-3">
-                        <div class="mb-3">
-                            <label for="categoryName" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="categoryName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="categoryColor" class="form-label">Color</label>
-                            <input type="color" class="form-control form-control-color" id="categoryColor" value="#563d7c" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="categoryIcon" class="form-label">Icon</label>
-                            <select class="form-select" id="categoryIcon" required>
-                                <option value="bi-briefcase">💼 Work</option>
-                                <option value="bi-person">👤 Personal</option>
-                                <option value="bi-heart-pulse">❤️ Health</option>
-                                <option value="bi-book">📚 Learning</option>
-                                <option value="bi-cart">🛒 Shopping</option>
-                                <option value="bi-house">🏠 Home</option>
-                                <option value="bi-people">👥 Social</option>
-                                <option value="bi-laptop">💻 Tech</option>
-                            </select>
-                        </div>
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-secondary" onclick="hideAddCategoryForm()">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="addCategory()">Add Category</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Edit Category Form -->
-                <div id="editCategoryForm" style="display: none;">
-                    <h6 class="mb-3">Edit Category</h6>
-                    <form id="editCategoryFormElement" class="mb-3">
-                        <input type="hidden" id="editCategoryId">
-                        <div class="mb-3">
-                            <label for="editCategoryName" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="editCategoryName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editCategoryColor" class="form-label">Color</label>
-                            <input type="color" class="form-control form-control-color" id="editCategoryColor" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editCategoryIcon" class="form-label">Icon</label>
-                            <select class="form-select" id="editCategoryIcon" required>
-                                <option value="bi-briefcase">💼 Work</option>
-                                <option value="bi-person">👤 Personal</option>
-                                <option value="bi-heart-pulse">❤️ Health</option>
-                                <option value="bi-book">📚 Learning</option>
-                                <option value="bi-cart">🛒 Shopping</option>
-                                <option value="bi-house">🏠 Home</option>
-                                <option value="bi-people">👥 Social</option>
-                                <option value="bi-laptop">💻 Tech</option>
-                            </select>
-                        </div>
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-secondary" onclick="hideEditCategoryForm()">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="updateCategory()">Save Changes</button>
-                        </div>
-                    </form>
-                </div>
+                <form id="editTaskForm">
+                    <input type="hidden" id="editTaskId">
+                    <div class="mb-3">
+                        <label for="editTaskTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="editTaskTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editTaskDescription"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskCategory" class="form-label">Category</label>
+                        <select class="form-select" id="editTaskCategory">
+                            <option value="Work">Work</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Health">Health</option>
+                            <option value="Learning">Learning</option>
+                            <option value="Shopping">Shopping</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskDueDate" class="form-label">Due Date</label>
+                        <input type="date" class="form-control" id="editTaskDueDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTaskQuadrant" class="form-label">Quadrant</label>
+                        <select class="form-select" id="editTaskQuadrant">
+                            <option value="urgent-important">Urgent & Important</option>
+                            <option value="not-urgent-important">Not Urgent & Important</option>
+                            <option value="urgent-not-important">Urgent & Not Important</option>
+                            <option value="not-urgent-not-important">Not Urgent & Not Important</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateTask()">Save Changes</button>
             </div>
         </div>
     </div>

@@ -28,76 +28,45 @@
 body {
     background-color: var(--app-bg) !important;
     min-height: 100vh;
-    overflow-x: hidden;
 }
 
 .container-fluid {
     max-width: 1600px;
     margin: 0 auto;
-    padding: 1rem;
-}
-
-.header-container {
-    margin-bottom: 2rem;
-}
-
-.header-title {
-    color: var(--bs-purple);
-    margin-bottom: 1rem;
-}
-
-.header-actions {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.status-badges {
-    display: flex;
-    gap: 0.5rem;
 }
 
 .matrix-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: 1.5rem;
-    min-height: calc(100vh - 200px);
-    margin-top: 1rem;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 2rem !important;
+    min-height: calc(100vh - 150px);
+    padding: 0.5rem;
+    margin: 0;
     width: 100%;
-    position: relative;
 }
 
 .matrix-quadrant {
     background-color: rgba(24, 24, 37, 0.8);
     border-radius: 1rem;
-    padding: 1.5rem;
-    border: 2px solid var(--bs-purple);
+    padding: 2rem;
+    border: 3px solid #A78BFA;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     min-height: 300px;
     position: relative;
-    overflow-y: auto;
+    overflow: hidden;
+    transition: all var(--transition-speed) ease-in-out;
 }
 
 .matrix-quadrant.drag-over {
-    border-color: var(--bs-purple);
-    box-shadow: 0 0 10px rgba(167, 139, 250, 0.4);
-}
-
-.quadrant-title {
-    color: var(--bs-purple);
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-    position: sticky;
-    top: 0;
+    border-color: #F9FAFB;
     background-color: rgba(24, 24, 37, 0.95);
-    padding: 0.5rem 0;
-    z-index: 1;
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.4);
+    transform: scale(1.02);
 }
 
-/* Task card styles */
 .task-card {
     background-color: rgba(30, 30, 46, 0.95);
     border: 2px solid;
@@ -105,58 +74,82 @@ body {
     padding: 1.25rem;
     margin-bottom: 1rem;
     transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: relative;
+    overflow: hidden;
     cursor: grab;
+    transform-origin: center;
+    will-change: transform, opacity;
 }
 
-.task-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* Due date status styles */
+.task-overdue {
+    border-color: var(--status-overdue);
 }
 
-.task-card.dragging {
-    opacity: 0.5;
-    cursor: grabbing;
+.task-due-today {
+    border-color: var(--status-today);
 }
 
-.task-title {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+.task-due-this-week {
+    border-color: var(--status-this-week);
 }
 
-.task-description {
-    font-size: 0.9rem;
-    color: var(--bs-gray-400);
-    margin-bottom: 1rem;
+.task-future {
+    border-color: var(--status-future);
 }
-
-/* Status styles */
-.task-overdue { border-color: var(--status-overdue); }
-.task-due-today { border-color: var(--status-today); }
-.task-due-this-week { border-color: var(--status-this-week); }
-.task-future { border-color: var(--status-future); }
 
 .task-completed {
     opacity: 0.7;
     border-style: dashed;
 }
 
-/* Category styles */
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
 .category-badge {
     padding: 0.35rem 0.75rem;
     border-radius: 1rem;
     font-size: 0.8rem;
     font-weight: 500;
+    transition: all var(--transition-speed) ease;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.category-Health { background-color: var(--category-health); }
-.category-Work { background-color: var(--category-work); }
-.category-Personal { background-color: var(--category-personal); }
-.category-Learning { background-color: var(--category-learning); }
-.category-Shopping { background-color: var(--category-shopping); }
+/* Category styles */
+.category-Health { 
+    background-color: var(--category-health);
+    color: white;
+}
+
+.category-Work { 
+    background-color: var(--category-work);
+    color: white;
+}
+
+.category-Personal { 
+    background-color: var(--category-personal);
+    color: white;
+}
+
+.category-Learning { 
+    background-color: var(--category-learning);
+    color: white;
+}
+
+.category-Shopping { 
+    background-color: var(--category-shopping);
+    color: white;
+}
+
+/* Category icons */
+.category-icon {
+    font-size: 0.9em;
+}
 
 .task-due-date {
     display: inline-flex;
@@ -166,6 +159,10 @@ body {
     border-radius: 0.5rem;
     font-size: 0.8rem;
     background-color: rgba(255, 255, 255, 0.1);
+}
+
+.task-due-date i {
+    font-size: 0.9em;
 }
 
 /* Status indicators */
@@ -182,31 +179,3 @@ body {
 .status-today { background-color: var(--status-today); }
 .status-this-week { background-color: var(--status-this-week); }
 .status-future { background-color: var(--status-future); }
-
-/* Loading states */
-.loading-spinner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-}
-
-.loading-text {
-    margin-top: 1rem;
-    color: var(--bs-gray-500);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .matrix-container {
-        grid-template-columns: 1fr;
-        grid-template-rows: repeat(4, minmax(300px, 1fr));
-        gap: 1rem;
-    }
-    
-    .header-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-}
