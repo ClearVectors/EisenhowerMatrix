@@ -1,4 +1,33 @@
-// Keep existing code at the top...
+// Initialize tasks when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    loadTasks();
+});
+
+let tasks = [];
+
+// Toast notification function
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', () => {
+        document.body.removeChild(toast);
+    });
+}
 
 // Category Management Functions
 function loadCategories() {
@@ -11,13 +40,13 @@ function loadCategories() {
             return response.json();
         })
         .then(categories => {
-            categoryList.innerHTML = '';
+            categoryList.innerHTML = categories.length ? '' : '<div class="text-center text-muted">No categories found</div>';
             categories.forEach(category => {
                 categoryList.innerHTML += createCategoryListItem(category);
             });
         })
         .catch(error => {
-            console.error('Error loading categories:', error);
+            console.error('Error:', error);
             categoryList.innerHTML = '<div class="alert alert-danger">Failed to load categories</div>';
             showToast('Failed to load categories', 'error');
         });
@@ -56,7 +85,12 @@ function hideAddCategoryForm() {
 function showEditCategoryForm(categoryId) {
     fetch(`/categories/${categoryId}`)
         .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) {
+                if (response.status === 405) {
+                    throw new Error('Category editing is not available');
+                }
+                throw new Error(`Failed to load category: ${response.statusText}`);
+            }
             return response.json();
         })
         .then(category => {
@@ -70,7 +104,8 @@ function showEditCategoryForm(categoryId) {
         })
         .catch(error => {
             console.error('Error loading category:', error);
-            showToast('Failed to load category details', 'error');
+            showToast(error.message || 'Failed to load category details', 'error');
+            hideEditCategoryForm();
         });
 }
 
@@ -103,7 +138,12 @@ function addCategory() {
         body: JSON.stringify({ name, color, icon })
     })
     .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            if (response.status === 400) {
+                throw new Error('Category name must be unique');
+            }
+            throw new Error(`Failed to add category: ${response.statusText}`);
+        }
         return response.json();
     })
     .then(data => {
@@ -113,11 +153,11 @@ function addCategory() {
     })
     .catch(error => {
         console.error('Error adding category:', error);
-        showToast('Failed to add category', 'error');
+        showToast(error.message || 'Failed to add category', 'error');
     })
     .finally(() => {
         addButton.disabled = false;
-        addButton.textContent = originalText;
+        addButton.innerHTML = originalText;
     });
 }
 
@@ -145,7 +185,12 @@ function updateCategory() {
         body: JSON.stringify({ name, color, icon })
     })
     .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            if (response.status === 400) {
+                throw new Error('Category name must be unique');
+            }
+            throw new Error(`Failed to update category: ${response.statusText}`);
+        }
         return response.json();
     })
     .then(data => {
@@ -155,11 +200,11 @@ function updateCategory() {
     })
     .catch(error => {
         console.error('Error updating category:', error);
-        showToast('Failed to update category', 'error');
+        showToast(error.message || 'Failed to update category', 'error');
     })
     .finally(() => {
         saveButton.disabled = false;
-        saveButton.textContent = originalText;
+        saveButton.innerHTML = originalText;
     });
 }
 
@@ -173,7 +218,7 @@ function deleteCategory(categoryId) {
         }
     })
     .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) throw new Error(`Failed to delete category: ${response.statusText}`);
         return response.json();
     })
     .then(data => {
@@ -182,7 +227,7 @@ function deleteCategory(categoryId) {
     })
     .catch(error => {
         console.error('Error deleting category:', error);
-        showToast('Failed to delete category', 'error');
+        showToast(error.message || 'Failed to delete category', 'error');
     });
 }
 
@@ -191,4 +236,63 @@ document.getElementById('categoriesModal').addEventListener('show.bs.modal', fun
     loadCategories();
 });
 
-// Keep existing code and initialization...
+// Task Management Functions
+function loadTasks() {
+    fetch('/tasks')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(tasksData => {
+            tasks = tasksData;
+            updateTasksUI(tasks);
+        })
+        .catch(error => {
+            console.error('Error loading tasks:', error);
+            showToast('Failed to load tasks', 'error');
+        });
+}
+
+function updateTasksUI(tasks) {
+    const quadrants = {
+        'urgent-important': document.getElementById('urgent-important'),
+        'not-urgent-important': document.getElementById('not-urgent-important'),
+        'urgent-not-important': document.getElementById('urgent-not-important'),
+        'not-urgent-not-important': document.getElementById('not-urgent-not-important')
+    };
+
+    // Clear existing tasks
+    Object.values(quadrants).forEach(quadrant => {
+        if (quadrant) {
+            quadrant.innerHTML = '';
+        }
+    });
+
+    // Add tasks to their respective quadrants
+    tasks.forEach(task => {
+        if (quadrants[task.quadrant]) {
+            quadrants[task.quadrant].innerHTML += createTaskCard(task);
+        }
+    });
+}
+
+// Export functionality
+function exportTasks() {
+    window.location.href = '/tasks/export';
+}
+
+// Filter functionality
+function filterTasks(filter = 'all') {
+    fetch(`/tasks?filter=${filter}`)
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(filteredTasks => {
+            updateTasksUI(filteredTasks);
+        })
+        .catch(error => {
+            console.error('Error filtering tasks:', error);
+            showToast('Failed to filter tasks', 'error');
+        });
+}
