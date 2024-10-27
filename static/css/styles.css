@@ -19,6 +19,9 @@
     --status-overdue: #EF4444;
     --status-today: #EAB308;
     --status-week: #3B82F6;
+
+    /* Animation durations */
+    --transition-speed: 0.2s;
 }
 
 body {
@@ -53,12 +56,25 @@ body {
     min-height: 300px;
     position: relative;
     overflow: hidden;
+    transition: all var(--transition-speed) ease-in-out;
 }
 
 .matrix-quadrant.drag-over {
     border-color: #F9FAFB;
     background-color: rgba(24, 24, 37, 0.95);
-    box-shadow: 0 0 15px rgba(167, 139, 250, 0.3);
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.4);
+    transform: scale(1.02);
+}
+
+.matrix-quadrant.drag-over::after {
+    content: 'Drop here';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    pointer-events: none;
 }
 
 .task-card {
@@ -67,19 +83,30 @@ body {
     border-radius: 0.75rem;
     padding: 1.25rem;
     margin-bottom: 1rem;
-    transition: all 0.2s ease-in-out;
+    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
     border-left-width: 6px;
     cursor: grab;
+    transform-origin: center;
+    will-change: transform, opacity;
 }
 
 .task-card.dragging {
     opacity: 0.5;
     cursor: grabbing;
-    transform: scale(0.95);
+    transform: scale(0.95) rotate(-1deg);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.task-card.task-placeholder {
+    background-color: rgba(30, 30, 46, 0.5);
+    border-style: dashed;
+    border-width: 2px;
+    opacity: 0.7;
+    pointer-events: none;
 }
 
 .task-overdue {
@@ -103,6 +130,17 @@ body {
     height: 100%;
     background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05));
     z-index: 0;
+    transition: opacity var(--transition-speed) ease;
+}
+
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.task-card:hover::before {
+    opacity: 0.8;
 }
 
 .task-card h5 {
@@ -122,23 +160,6 @@ body {
     z-index: 1;
 }
 
-.task-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.25);
-}
-
-/* Edit button specific styles */
-.edit-task-btn {
-    pointer-events: auto !important;
-    opacity: 1 !important;
-    z-index: 10;
-}
-
-.edit-task-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
 .task-actions {
     display: flex;
     gap: 0.5rem;
@@ -146,6 +167,11 @@ body {
     align-items: center;
     position: relative;
     z-index: 2;
+    transition: opacity var(--transition-speed) ease;
+}
+
+.task-card.dragging .task-actions {
+    opacity: 0.5;
 }
 
 .category-badge {
@@ -153,29 +179,24 @@ body {
     border-radius: 1rem;
     font-size: 0.8rem;
     font-weight: 500;
+    transition: all var(--transition-speed) ease;
 }
 
-.category-Health {
-    background-color: var(--category-health);
-    color: white;
+.category-Health { background-color: var(--category-health); color: white; }
+.category-Work { background-color: var(--category-work); color: white; }
+.category-Personal { background-color: var(--category-personal); color: white; }
+.category-Learning { background-color: var(--category-learning); color: white; }
+.category-Shopping { background-color: var(--category-shopping); color: white; }
+
+/* Loading animation */
+.task-list-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100px;
 }
 
-.category-Work {
-    background-color: var(--category-work);
-    color: white;
-}
-
-.category-Personal {
-    background-color: var(--category-personal);
-    color: white;
-}
-
-.category-Learning {
-    background-color: var(--category-learning);
-    color: white;
-}
-
-.category-Shopping {
-    background-color: var(--category-shopping);
-    color: white;
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
 }
