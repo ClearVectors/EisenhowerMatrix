@@ -45,12 +45,12 @@ function validateAddTaskForm() {
     const title = document.getElementById('taskTitle').value.trim();
     const dueDate = document.getElementById('taskDueDate').value;
     const quadrant = document.getElementById('taskQuadrant').value;
-    const errors = [];
 
     // Reset previous validation state
     document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
     document.querySelectorAll('.invalid-feedback').forEach(el => el.style.display = 'none');
 
+    const errors = [];
     if (!title) {
         errors.push('Title is required');
         document.getElementById('taskTitle').classList.add('is-invalid');
@@ -70,7 +70,6 @@ function validateAddTaskForm() {
     return errors;
 }
 
-// Define main task functions
 function addTask() {
     const title = document.getElementById('taskTitle').value.trim();
     const description = document.getElementById('taskDescription').value.trim();
@@ -78,16 +77,26 @@ function addTask() {
     const dueDate = document.getElementById('taskDueDate').value;
     const quadrant = document.getElementById('taskQuadrant').value;
 
-    console.log('Adding task with:', { title, description, category, dueDate, quadrant });
+    // Debug logging
+    console.log('Form values:', {
+        title,
+        description,
+        category,
+        dueDate,
+        quadrant
+    });
 
+    // Validate form
     const errors = validateAddTaskForm();
     if (errors.length > 0) {
         showToast(errors.join(', '), 'error');
         return;
     }
 
+    // Show loading state
     setAddTaskLoadingState(true);
 
+    // Create task
     fetch('/tasks', {
         method: 'POST',
         headers: {
@@ -209,7 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addTaskModal) {
         addTaskModal.addEventListener('show.bs.modal', () => {
             document.getElementById('taskForm').reset();
-            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            document.querySelectorAll('.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+                if (el.nextElementSibling) {
+                    el.nextElementSibling.style.display = 'none';
+                }
+            });
         });
 
         // Add form submit handler
@@ -219,9 +233,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Add change event listener for quadrant selection
-        const taskQuadrant = document.getElementById('taskQuadrant');
-        if (taskQuadrant) {
-            taskQuadrant.addEventListener('change', function() {
+        const quadrantSelect = document.getElementById('taskQuadrant');
+        if (quadrantSelect) {
+            quadrantSelect.addEventListener('change', function() {
+                console.log('Quadrant selected:', this.value);
                 this.classList.remove('is-invalid');
                 if (this.nextElementSibling) {
                     this.nextElementSibling.style.display = 'none';
