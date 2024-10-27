@@ -4,9 +4,9 @@
     <h1 class="header-title">Eisenhower Matrix</h1>
     <div class="header-actions">
         <div class="status-badges">
-            <span class="badge bg-danger">{{ overdue_count }} overdue</span>
-            <span class="badge bg-warning text-dark">{{ due_today_count }} due today</span>
-            <span class="badge bg-info">{{ due_this_week_count }} due this week</span>
+            <span class="badge" style="background-color: var(--status-overdue)">{{ overdue_count }} overdue</span>
+            <span class="badge" style="background-color: var(--status-today)">{{ due_today_count }} due today</span>
+            <span class="badge" style="background-color: var(--status-this-week)">{{ due_this_week_count }} due this week</span>
         </div>
         <div class="btn-group">
             <button type="button" class="btn btn-outline-secondary" onclick="filterTasks('all')">All Tasks</button>

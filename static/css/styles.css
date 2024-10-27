@@ -16,9 +16,9 @@
     --category-shopping: #F97316;
     
     /* Due date status colors */
-    --status-overdue: #DC2626;    /* Bright Red */
-    --status-today: #FBBF24;      /* Warm Yellow */
-    --status-this-week: #2563EB;  /* Blue */
+    --status-overdue: #FF7F7F;    /* Coral red for overdue */
+    --status-today: #B5BA72;      /* Olive yellow for due today */
+    --status-this-week: #7DD3FC;  /* Light blue for due this week */
     --status-future: #059669;     /* Green */
     
     /* Animation durations */
