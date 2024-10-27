@@ -116,17 +116,31 @@ def add_sample_tasks():
 
 def _get_index_data():
     try:
-        overdue_count = Task.query.filter(Task.due_date < datetime.now(), Task.completed == False).count()
+        now = datetime.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        week_end = today_start + timedelta(days=7)
+
+        # Get overdue tasks (due before today)
+        overdue_count = Task.query.filter(
+            Task.due_date < today_start,
+            Task.completed == False
+        ).count()
+
+        # Get tasks due today (due between start and end of today)
         due_today_count = Task.query.filter(
-            Task.due_date >= datetime.now(),
-            Task.due_date < datetime.now() + timedelta(days=1),
+            Task.due_date >= today_start,
+            Task.due_date < today_end,
             Task.completed == False
         ).count()
+
+        # Get tasks due this week (due between tomorrow and next 7 days)
         due_this_week_count = Task.query.filter(
-            Task.due_date >= datetime.now() + timedelta(days=1),
-            Task.due_date < datetime.now() + timedelta(days=7),
+            Task.due_date >= today_end,
+            Task.due_date < week_end,
             Task.completed == False
         ).count()
+
         return render_template('index.html',
                            overdue_count=overdue_count,
                            due_today_count=due_today_count,
