@@ -14,6 +14,7 @@ def add_sample_tasks():
     
     # Sample tasks data
     tasks = [
+        # Existing tasks
         {
             'title': 'Health Checkup',
             'description': 'Annual medical examination',
@@ -41,6 +42,49 @@ def add_sample_tasks():
             'category': 'Health',
             'due_date': datetime.now() + timedelta(days=9),
             'quadrant': 'not-urgent-not-important'
+        },
+        # New tasks
+        {
+            'title': 'Project Deadline',
+            'description': 'Complete project deliverables for client presentation',
+            'category': 'Work',
+            'due_date': datetime.now() + timedelta(days=2),
+            'quadrant': 'urgent-important'
+        },
+        {
+            'title': 'Weekly Planning',
+            'description': 'Plan next week\'s activities and goals',
+            'category': 'Work',
+            'due_date': datetime.now() + timedelta(days=5),
+            'quadrant': 'not-urgent-important'
+        },
+        {
+            'title': 'Grocery Shopping',
+            'description': 'Buy groceries for the week',
+            'category': 'Shopping',
+            'due_date': datetime.now() + timedelta(days=1),
+            'quadrant': 'urgent-not-important'
+        },
+        {
+            'title': 'Read Design Book',
+            'description': 'Study UX design principles',
+            'category': 'Learning',
+            'due_date': datetime.now() + timedelta(days=7),
+            'quadrant': 'not-urgent-important'
+        },
+        {
+            'title': 'Gym Session',
+            'description': 'Complete weekly workout routine',
+            'category': 'Health',
+            'due_date': datetime.now() + timedelta(days=3),
+            'quadrant': 'not-urgent-important'
+        },
+        {
+            'title': 'Birthday Gift',
+            'description': 'Buy birthday gift for friend',
+            'category': 'Personal',
+            'due_date': datetime.now() + timedelta(days=2),
+            'quadrant': 'urgent-not-important'
         }
     ]
     
@@ -76,7 +120,25 @@ def index():
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
-    tasks = Task.query.all()
+    filter_type = request.args.get('filter', 'all')
+    query = Task.query
+
+    if filter_type == 'overdue':
+        query = query.filter(Task.due_date < datetime.now(), Task.completed == False)
+    elif filter_type == 'today':
+        query = query.filter(
+            Task.due_date >= datetime.now(),
+            Task.due_date < datetime.now() + timedelta(days=1),
+            Task.completed == False
+        )
+    elif filter_type == 'week':
+        query = query.filter(
+            Task.due_date >= datetime.now() + timedelta(days=1),
+            Task.due_date < datetime.now() + timedelta(days=7),
+            Task.completed == False
+        )
+
+    tasks = query.all()
     return jsonify([{
         'id': task.id,
         'title': task.title,
@@ -138,19 +200,15 @@ def update_task(task_id):
         if 'completed' in data:
             task.completed = data['completed']
         else:
-            # Validate required fields for task update
-            if 'title' not in data or not data['title'].strip():
-                return jsonify({'error': 'Title is required'}), 400
-            if 'quadrant' not in data:
-                return jsonify({'error': 'Quadrant is required'}), 400
-            if 'category' not in data:
-                return jsonify({'error': 'Category is required'}), 400
-
-            task.title = data['title'].strip()
-            task.description = data.get('description', '').strip()
-            task.category = data['category']
-            task.quadrant = data['quadrant']
-            
+            # Only update fields that are provided
+            if 'title' in data:
+                task.title = data['title'].strip()
+            if 'description' in data:
+                task.description = data.get('description', '').strip()
+            if 'category' in data:
+                task.category = data['category']
+            if 'quadrant' in data:
+                task.quadrant = data['quadrant']
             if 'due_date' in data:
                 try:
                     task.due_date = datetime.fromisoformat(data['due_date'])
