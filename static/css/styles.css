@@ -16,9 +16,9 @@
     --category-shopping: #F97316;
     
     /* Status colors */
-    --status-overdue: #EF4444;
-    --status-today: #EAB308;
-    --status-week: #3B82F6;
+    --status-overdue: #EF4444;    /* Red */
+    --status-today: #EAB308;      /* Yellow */
+    --status-week: #3B82F6;       /* Blue */
 
     /* Animation durations */
     --transition-speed: 0.2s;
