@@ -1,14 +1,15 @@
 from flask import Flask, render_template, jsonify, request, make_response
 from datetime import datetime, timedelta
 import os
-from models import db, Task, Category
+from models import db, Task
 from io import StringIO
 import csv
 import time
-from sqlalchemy.exc import SQLAlchyError
+from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__)
 
+# Database configuration with proper SSL and connection pooling
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -20,6 +21,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 db.init_app(app)
 
 def with_retry(func, max_retries=3):
+    """Decorator to add retry logic to database operations"""
     def wrapper(*args, **kwargs):
         retry_count = 0
         while retry_count < max_retries:
@@ -30,7 +32,7 @@ def with_retry(func, max_retries=3):
                 retry_count += 1
                 if retry_count == max_retries:
                     raise
-                time.sleep(1)
+                time.sleep(1)  # Wait before retrying
     return wrapper
 
 def _export_tasks():
@@ -267,80 +269,6 @@ def _delete_task(task_id):
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     return with_retry(_delete_task)(task_id)
-
-@app.route('/categories', methods=['GET'])
-def get_categories():
-    try:
-        categories = Category.query.all()
-        return jsonify([{
-            'id': category.id,
-            'name': category.name,
-            'color': category.color,
-            'icon': category.icon
-        } for category in categories])
-    except Exception as e:
-        return jsonify({'error': 'Failed to fetch categories'}), 500
-
-@app.route('/categories', methods=['POST'])
-def create_category():
-    try:
-        data = request.get_json()
-        if not data or 'name' not in data:
-            return jsonify({'error': 'Name is required'}), 400
-
-        category = Category()
-        category.name = data['name'].strip()
-        category.color = data.get('color', '#6C757D')
-        category.icon = data.get('icon', 'bi-tag')
-
-        db.session.add(category)
-        db.session.commit()
-
-        return jsonify({
-            'id': category.id,
-            'name': category.name,
-            'color': category.color,
-            'icon': category.icon
-        }), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/categories/<int:category_id>', methods=['PUT'])
-def update_category(category_id):
-    try:
-        category = Category.query.get_or_404(category_id)
-        data = request.get_json()
-
-        if 'name' in data:
-            category.name = data['name'].strip()
-        if 'color' in data:
-            category.color = data['color']
-        if 'icon' in data:
-            category.icon = data['icon']
-
-        db.session.commit()
-
-        return jsonify({
-            'id': category.id,
-            'name': category.name,
-            'color': category.color,
-            'icon': category.icon
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/categories/<int:category_id>', methods=['DELETE'])
-def delete_category(category_id):
-    try:
-        category = Category.query.get_or_404(category_id)
-        db.session.delete(category)
-        db.session.commit()
-        return jsonify({'message': 'Category deleted successfully'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
 
 with app.app_context():
     db.create_all()

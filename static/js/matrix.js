@@ -1,135 +1,354 @@
-function loadTasks() {
-    fetch('/tasks')
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(tasks => {
-            // Clear existing tasks
-            document.querySelectorAll('.task-list').forEach(list => list.innerHTML = '');
-            
-            // Sort tasks by due date
-            tasks.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
-            
-            // Add tasks to appropriate quadrants
-            tasks.forEach(task => {
-                const taskElement = createTaskElement(task);
-                document.getElementById(task.quadrant).appendChild(taskElement);
-            });
-        })
-        .catch(error => {
-            console.error('Error loading tasks:', error);
-            showToast('Failed to load tasks', 'error');
-        });
+let tasks = [];
+let toastTimeout;
+
+function showToast(message, type = 'success') {
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast position-fixed bottom-0 end-0 m-4 ${type === 'error' ? 'bg-danger' : 'bg-success'} text-white`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="toast-body d-flex align-items-center">
+            <span>${message}</span>
+            <button type="button" class="btn-close btn-close-white ms-3" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    toastTimeout = setTimeout(() => toast.remove(), 3000);
 }
 
-function createTaskElement(task) {
-    const taskDiv = document.createElement('div');
-    taskDiv.className = 'task-card';
-    taskDiv.id = `task-${task.id}`;
-    taskDiv.draggable = true;
+function getDueStatus(dueDate) {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
     
-    // Add drag event listeners
-    taskDiv.addEventListener('dragstart', handleDragStart);
-    taskDiv.addEventListener('dragend', handleDragEnd);
-    
-    // Calculate due date status
+    if (diffDays < 0) return 'overdue';
+    if (diffDays === 0) return 'due-today';
+    if (diffDays <= 7) return 'due-this-week';
+    return 'future';
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        'Health': 'bi-heart-pulse',
+        'Work': 'bi-briefcase',
+        'Personal': 'bi-person',
+        'Learning': 'bi-book',
+        'Shopping': 'bi-cart'
+    };
+    return icons[category] || 'bi-tag';
+}
+
+function createTaskCard(task) {
     const dueDate = new Date(task.due_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
+    const dueStatus = getDueStatus(dueDate);
+    const formattedDueDate = dueDate.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
     
-    let statusClass = '';
-    if (dueDate < today) {
-        statusClass = 'overdue';
-    } else if (dueDate < tomorrow) {
-        statusClass = 'due-today';
-    } else if (dueDate < nextWeek) {
-        statusClass = 'due-this-week';
-    }
-    
-    if (statusClass) {
-        taskDiv.classList.add(statusClass);
-    }
-    
-    taskDiv.innerHTML = `
-        <div class="task-header">
-            <h3 class="task-title">${task.title}</h3>
-            <div class="task-actions">
-                <button class="btn btn-sm btn-outline-secondary" onclick="editTask(${task.id})">
+    const categoryIcon = getCategoryIcon(task.category);
+    const statusClass = `task-${dueStatus}`;
+    const completedClass = task.completed ? 'task-completed' : '';
+
+    return `
+        <div class="task-card ${statusClass} ${completedClass}"
+             draggable="true"
+             data-task-id="${task.id}"
+             ondragstart="handleDragStart(event)"
+             ondragend="handleDragEnd(event)">
+            <div class="status-indicator status-${dueStatus}"></div>
+            <h5>${task.title}</h5>
+            <p>${task.description || ''}</p>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="category-badge category-${task.category}">
+                    <i class="bi ${categoryIcon} category-icon"></i>
+                    ${task.category}
+                </span>
+                <span class="task-due-date">
+                    <i class="bi bi-calendar-event"></i>
+                    ${formattedDueDate}
+                </span>
+            </div>
+            <div class="task-actions mt-3">
+                <button class="btn btn-outline-secondary btn-sm" 
+                        onclick="showEditTaskModal(${task.id})" 
+                        title="Edit task">
                     <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteTask(${task.id})">
+                <button class="btn btn-outline-${task.completed ? 'warning' : 'success'} btn-sm" 
+                        onclick="toggleTaskCompletion(${task.id}, ${task.completed})"
+                        title="${task.completed ? 'Mark as incomplete' : 'Mark as complete'}">
+                    <i class="bi bi-${task.completed ? 'arrow-counterclockwise' : 'check-lg'}"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" 
+                        onclick="deleteTask(${task.id})"
+                        title="Delete task">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
         </div>
-        <p class="task-description">${task.description || ''}</p>
-        <div class="task-footer">
-            <span class="category-badge" style="--category-color: ${getCategoryColor(task.category)}">
-                <i class="bi ${getCategoryIcon(task.category)}"></i>
-                ${task.category}
-            </span>
-            <span class="due-date">${formatDate(task.due_date)}</span>
-        </div>
     `;
+}
+
+function loadTasks(filter = 'all') {
+    const quadrants = {
+        'urgent-important': document.getElementById('urgent-important'),
+        'not-urgent-important': document.getElementById('not-urgent-important'),
+        'urgent-not-important': document.getElementById('urgent-not-important'),
+        'not-urgent-not-important': document.getElementById('not-urgent-not-important')
+    };
+
+    Object.values(quadrants).forEach(quadrant => {
+        quadrant.innerHTML = '<div class="task-list-loading"><div class="spinner-border text-secondary"></div></div>';
+    });
+
+    Promise.all([
+        fetch('/tasks').then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        }),
+        fetch(`/tasks?filter=${filter}`).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+    ])
+    .then(([allTasks, filteredTasks]) => {
+        tasks = allTasks;
+        console.log('Tasks loaded:', tasks);
+
+        Object.values(quadrants).forEach(quadrant => {
+            quadrant.innerHTML = '';
+        });
+
+        filteredTasks.forEach(task => {
+            if (quadrants[task.quadrant]) {
+                quadrants[task.quadrant].innerHTML += createTaskCard(task);
+            }
+        });
+
+        document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
+            quadrant.ondragover = handleDragOver;
+            quadrant.ondragenter = handleDragEnter;
+            quadrant.ondragleave = handleDragLeave;
+            quadrant.ondrop = handleDrop;
+        });
+    })
+    .catch(error => {
+        console.error('Error loading tasks:', error);
+        Object.values(quadrants).forEach(quadrant => {
+            quadrant.innerHTML = '<div class="alert alert-danger">Failed to load tasks. Please refresh the page to try again.</div>';
+        });
+        showToast('Failed to load tasks', 'error');
+    });
+}
+
+function addTask() {
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDescription').value.trim();
+    const category = document.getElementById('taskCategory').value;
+    const dueDate = document.getElementById('taskDueDate').value;
+    const quadrant = document.getElementById('taskQuadrant').value;
+
+    // Validate required fields
+    if (!title || !dueDate || !quadrant) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    // Show loading state
+    const addButton = document.querySelector('#addTaskModal .btn-primary');
+    const originalText = addButton.textContent;
+    addButton.disabled = true;
+    addButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
+    fetch('/tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title,
+            description,
+            category,
+            due_date: dueDate,
+            quadrant
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task added successfully');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addTaskModal'));
+        modal.hide();
+        document.getElementById('taskForm').reset();
+        loadTasks();  // Refresh task list
+    })
+    .catch(error => {
+        console.error('Error adding task:', error);
+        showToast('Failed to add task: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        addButton.disabled = false;
+        addButton.textContent = originalText;
+    });
+}
+
+function toggleTaskCompletion(taskId, currentStatus) {
+    fetch(`/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            completed: !currentStatus
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast(`Task marked as ${!currentStatus ? 'complete' : 'incomplete'}`);
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error updating task:', error);
+        showToast('Failed to update task status', 'error');
+    });
+}
+
+function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+
+    fetch(`/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task deleted successfully');
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error deleting task:', error);
+        showToast('Failed to delete task', 'error');
+    });
+}
+
+function showEditTaskModal(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+        showToast('Task not found', 'error');
+        return;
+    }
+
+    document.getElementById('editTaskId').value = task.id;
+    document.getElementById('editTaskTitle').value = task.title;
+    document.getElementById('editTaskDescription').value = task.description || '';
+    document.getElementById('editTaskCategory').value = task.category;
+    document.getElementById('editTaskQuadrant').value = task.quadrant;
     
-    return taskDiv;
+    // Format date for input
+    const dueDate = new Date(task.due_date);
+    const formattedDate = dueDate.toISOString().split('T')[0];
+    document.getElementById('editTaskDueDate').value = formattedDate;
+
+    const editModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+    editModal.show();
 }
 
-function formatDate(dateString) {
-    const options = { month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+function updateTask() {
+    const taskId = document.getElementById('editTaskId').value;
+    const title = document.getElementById('editTaskTitle').value.trim();
+    const description = document.getElementById('editTaskDescription').value.trim();
+    const category = document.getElementById('editTaskCategory').value;
+    const dueDate = document.getElementById('editTaskDueDate').value;
+    const quadrant = document.getElementById('editTaskQuadrant').value;
+
+    if (!title || !dueDate || !quadrant) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    // Show loading state
+    const saveButton = document.querySelector('#editTaskModal .btn-primary');
+    const originalText = saveButton.textContent;
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+    fetch(`/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title,
+            description,
+            category,
+            due_date: dueDate,
+            quadrant
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task updated successfully');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
+        modal.hide();
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error updating task:', error);
+        showToast('Failed to update task: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        saveButton.disabled = false;
+        saveButton.textContent = originalText;
+    });
 }
 
-function getCategoryColor(categoryName) {
-    const category = categories.find(c => c.name === categoryName);
-    return category ? category.color : '#6C757D';
-}
-
-function getCategoryIcon(categoryName) {
-    const category = categories.find(c => c.name === categoryName);
-    return category ? category.icon : 'bi-tag';
-}
-
-// Toast notification function
-function showToast(message, type = 'success') {
-    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
-    const toast = document.createElement('div');
-    toast.className = `toast show ${type === 'error' ? 'bg-danger' : 'bg-success'} text-white`;
-    toast.setAttribute('role', 'alert');
-    toast.innerHTML = `
-        <div class="toast-body d-flex justify-content-between align-items-center">
-            <span>${message}</span>
-            <button type="button" class="btn-close btn-close-white" onclick="this.parentElement.parentElement.remove()"></button>
-        </div>
-    `;
-    toastContainer.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-
-function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toastContainer';
-    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-    document.body.appendChild(container);
-    return container;
-}
-
-// Drag and Drop handlers
-let draggedTask = null;
-
+// Drag and drop functionality
 function handleDragStart(event) {
-    draggedTask = event.target;
-    event.target.style.opacity = '0.4';
+    const taskId = parseInt(event.target.dataset.taskId);
+    draggedTask = tasks.find(t => t.id === taskId);
+    if (!draggedTask) return;
+
+    event.target.classList.add('dragging');
     event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', taskId);
+
+    requestAnimationFrame(() => {
+        event.target.style.opacity = '0.5';
+        event.target.style.transform = 'scale(0.95) rotate(-1deg)';
+    });
 }
 
 function handleDragEnd(event) {
+    event.target.classList.remove('dragging');
     event.target.style.opacity = '';
+    event.target.style.transform = '';
+
     document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
         quadrant.classList.remove('drag-over');
     });
@@ -137,7 +356,7 @@ function handleDragEnd(event) {
 
 function handleDragOver(event) {
     event.preventDefault();
-    return false;
+    event.dataTransfer.dropEffect = 'move';
 }
 
 function handleDragEnter(event) {
@@ -156,10 +375,11 @@ function handleDragLeave(event) {
 
 function handleDrop(event) {
     event.preventDefault();
+    
     const quadrant = event.target.closest('.matrix-quadrant');
-    if (!quadrant || !draggedTask) return;
+    if (!quadrant) return;
 
-    const taskId = draggedTask.id.split('-')[1];
+    const taskId = event.dataTransfer.getData('text/plain');
     const newQuadrant = quadrant.querySelector('.task-list').id;
 
     fetch(`/tasks/${taskId}`, {
@@ -167,13 +387,15 @@ function handleDrop(event) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ quadrant: newQuadrant })
+        body: JSON.stringify({
+            quadrant: newQuadrant
+        })
     })
     .then(response => {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
     })
-    .then(() => {
+    .then(data => {
         showToast('Task moved successfully');
         loadTasks();
     })
@@ -182,159 +404,19 @@ function handleDrop(event) {
         showToast('Failed to move task', 'error');
         loadTasks();
     });
-
-    quadrant.classList.remove('drag-over');
-    return false;
 }
 
-// Category Management
-let categories = [];
-let editingCategoryId = null;
-
-function loadCategories() {
-    return fetch('/categories')
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            categories = data;
-            updateCategorySelects();
-            updateCategoryList();
-        })
-        .catch(error => {
-            console.error('Error loading categories:', error);
-            showToast('Failed to load categories', 'error');
-        });
+// Export functionality
+function exportTasks() {
+    window.location.href = '/tasks/export';
 }
 
-function updateCategorySelects() {
-    const selects = ['taskCategory', 'editTaskCategory'];
-    selects.forEach(selectId => {
-        const select = document.getElementById(selectId);
-        if (select) {
-            select.innerHTML = categories.map(category => 
-                `<option value="${category.name}" data-color="${category.color}" data-icon="${category.icon}">
-                    ${category.name}
-                </option>`
-            ).join('');
-        }
-    });
-}
-
-function updateCategoryList() {
-    const categoryList = document.getElementById('categoryList');
-    if (!categoryList) return;
-
-    categoryList.innerHTML = categories.map(category => `
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-                <i class="bi ${category.icon}" style="color: ${category.color}"></i>
-                <span class="ms-2">${category.name}</span>
-            </div>
-            <div class="btn-group">
-                <button class="btn btn-sm btn-outline-secondary" onclick="editCategory(${category.id})">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${category.id})">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function showAddCategoryForm() {
-    editingCategoryId = null;
-    const form = document.getElementById('categoryForm');
-    form.classList.remove('d-none');
-    document.getElementById('categoryName').value = '';
-    document.getElementById('categoryColor').value = '#6C757D';
-    document.getElementById('categoryIcon').value = 'bi-tag';
-}
-
-function editCategory(categoryId) {
-    const category = categories.find(c => c.id === categoryId);
-    if (!category) return;
-
-    editingCategoryId = categoryId;
-    const form = document.getElementById('categoryForm');
-    form.classList.remove('d-none');
-    document.getElementById('categoryName').value = category.name;
-    document.getElementById('categoryColor').value = category.color;
-    document.getElementById('categoryIcon').value = category.icon;
-}
-
-function cancelCategoryEdit() {
-    editingCategoryId = null;
-    document.getElementById('categoryForm').classList.add('d-none');
-}
-
-function saveCategory() {
-    const name = document.getElementById('categoryName').value.trim();
-    const color = document.getElementById('categoryColor').value;
-    const icon = document.getElementById('categoryIcon').value;
-
-    if (!name) {
-        showToast('Category name is required', 'error');
-        return;
-    }
-
-    const method = editingCategoryId ? 'PUT' : 'POST';
-    const url = editingCategoryId ? `/categories/${editingCategoryId}` : '/categories';
-
-    fetch(url, {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, color, icon })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-    })
-    .then(() => {
-        showToast(`Category ${editingCategoryId ? 'updated' : 'added'} successfully`);
-        loadCategories();
-        cancelCategoryEdit();
-    })
-    .catch(error => {
-        console.error('Error saving category:', error);
-        showToast(`Failed to ${editingCategoryId ? 'update' : 'add'} category`, 'error');
-    });
-}
-
-function deleteCategory(categoryId) {
-    if (!confirm('Are you sure you want to delete this category?')) return;
-
-    fetch(`/categories/${categoryId}`, {
-        method: 'DELETE'
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-    })
-    .then(() => {
-        showToast('Category deleted successfully');
-        loadCategories();
-    })
-    .catch(error => {
-        console.error('Error deleting category:', error);
-        showToast('Failed to delete category', 'error');
-    });
+// Filter functionality
+function filterTasks(filter = 'all') {
+    loadTasks(filter);
 }
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadTasks();
-    loadCategories();
-
-    // Set up drag and drop handlers for quadrants
-    document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
-        quadrant.addEventListener('dragover', handleDragOver);
-        quadrant.addEventListener('dragenter', handleDragEnter);
-        quadrant.addEventListener('dragleave', handleDragLeave);
-        quadrant.addEventListener('drop', handleDrop);
-    });
 });
