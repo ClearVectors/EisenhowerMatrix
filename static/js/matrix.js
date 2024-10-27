@@ -89,9 +89,7 @@ function handleDragEnd(event) {
 }
 
 function handleDragOver(event) {
-    if (event.preventDefault) {
-        event.preventDefault();
-    }
+    event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     return false;
 }
@@ -238,4 +236,134 @@ function toggleTaskCompletion(taskId, currentStatus) {
     });
 }
 
-// Rest of the code remains the same...
+function exportTasks() {
+    console.log('Exporting tasks...');
+    window.location.href = '/tasks/export';
+}
+
+function showEditTaskModal(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+        showToast('Task not found', 'error');
+        return;
+    }
+
+    document.getElementById('editTaskId').value = task.id;
+    document.getElementById('editTaskTitle').value = task.title;
+    document.getElementById('editTaskDescription').value = task.description || '';
+    document.getElementById('editTaskCategory').value = task.category;
+    document.getElementById('editTaskQuadrant').value = task.quadrant;
+    
+    // Format date for input
+    const dueDate = new Date(task.due_date);
+    const formattedDate = dueDate.toISOString().split('T')[0];
+    document.getElementById('editTaskDueDate').value = formattedDate;
+
+    const editModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+    editModal.show();
+}
+
+function filterTasks(filter = 'all') {
+    loadTasks(filter);
+}
+
+function createTaskCard(task) {
+    const dueDate = new Date(task.due_date);
+    const formattedDueDate = dueDate.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+
+    return `
+        <div class="task-card ${task.completed ? 'task-completed' : ''}"
+             draggable="true"
+             data-task-id="${task.id}"
+             ondragstart="handleDragStart(event)"
+             ondragend="handleDragEnd(event)">
+            <h5>${task.title}</h5>
+            <p>${task.description || ''}</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="category-badge category-${task.category}">${task.category}</span>
+                <small class="text-muted">${formattedDueDate}</small>
+            </div>
+            <div class="task-actions mt-3">
+                <button class="btn btn-outline-secondary btn-sm edit-task-btn" 
+                        onclick="showEditTaskModal(${task.id})" 
+                        title="Edit task">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-${task.completed ? 'warning' : 'success'} btn-sm" 
+                        onclick="toggleTaskCompletion(${task.id}, ${task.completed})"
+                        title="${task.completed ? 'Mark as incomplete' : 'Mark as complete'}">
+                    <i class="bi bi-${task.completed ? 'arrow-counterclockwise' : 'check-lg'}"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" 
+                        onclick="deleteTask(${task.id})"
+                        title="Delete task">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function loadTasks(filter = 'all') {
+    const quadrants = {
+        'urgent-important': document.getElementById('urgent-important'),
+        'not-urgent-important': document.getElementById('not-urgent-important'),
+        'urgent-not-important': document.getElementById('urgent-not-important'),
+        'not-urgent-not-important': document.getElementById('not-urgent-not-important')
+    };
+
+    // Show loading state
+    Object.values(quadrants).forEach(quadrant => {
+        quadrant.innerHTML = '<div class="text-center"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    });
+
+    Promise.all([
+        fetch('/tasks').then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        }),
+        fetch(`/tasks?filter=${filter}`).then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+    ])
+    .then(([allTasks, filteredTasks]) => {
+        tasks = allTasks;
+
+        // Clear existing tasks
+        Object.values(quadrants).forEach(quadrant => {
+            quadrant.innerHTML = '';
+        });
+
+        // Display filtered tasks
+        filteredTasks.forEach(task => {
+            if (quadrants[task.quadrant]) {
+                quadrants[task.quadrant].innerHTML += createTaskCard(task);
+            }
+        });
+
+        // Add drag and drop event listeners to quadrants
+        document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
+            quadrant.ondragover = handleDragOver;
+            quadrant.ondragenter = handleDragEnter;
+            quadrant.ondragleave = handleDragLeave;
+            quadrant.ondrop = handleDrop;
+        });
+    })
+    .catch(error => {
+        console.error('Error loading tasks:', error);
+        Object.values(quadrants).forEach(quadrant => {
+            quadrant.innerHTML = '<div class="alert alert-danger">Failed to load tasks. Please refresh the page to try again.</div>';
+        });
+        showToast('Failed to load tasks', 'error');
+    });
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', () => {
+    loadTasks();
+});
