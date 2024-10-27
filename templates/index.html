@@ -18,9 +18,7 @@
             </ul>
         </div>
         <button type="button" class="btn btn-primary add-task-btn" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
-            </svg>
+            <i class="bi bi-plus-lg"></i>
             Add Task
         </button>
     </div>
@@ -57,31 +55,34 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="taskForm">
+                <form id="taskForm" class="needs-validation" novalidate>
                     <div class="mb-3">
-                        <label for="taskTitle" class="form-label">Title</label>
+                        <label for="taskTitle" class="form-label">Title <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="taskTitle" required>
+                        <div class="invalid-feedback">Please enter a task title</div>
                     </div>
                     <div class="mb-3">
                         <label for="taskDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="taskDescription"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label for="taskCategory" class="form-label">Category</label>
-                        <select class="form-select" id="taskCategory">
+                        <label for="taskCategory" class="form-label">Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="taskCategory" required>
                             <option value="Work">Work</option>
                             <option value="Personal">Personal</option>
                             <option value="Health">Health</option>
                             <option value="Learning">Learning</option>
                             <option value="Shopping">Shopping</option>
                         </select>
+                        <div class="invalid-feedback">Please select a category</div>
                     </div>
                     <div class="mb-3">
-                        <label for="taskDueDate" class="form-label">Due Date</label>
+                        <label for="taskDueDate" class="form-label">Due Date <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="taskDueDate" required>
+                        <div class="invalid-feedback">Please select a due date</div>
                     </div>
                     <div class="mb-3">
-                        <label for="taskQuadrant" class="form-label">Quadrant</label>
+                        <label for="taskQuadrant" class="form-label">Quadrant <span class="text-danger">*</span></label>
                         <select class="form-select" id="taskQuadrant" required>
                             <option value="">Select a quadrant</option>
                             <option value="urgent-important">Urgent & Important</option>
@@ -89,6 +90,7 @@
                             <option value="urgent-not-important">Urgent & Not Important</option>
                             <option value="not-urgent-not-important">Not Urgent & Not Important</option>
                         </select>
+                        <div class="invalid-feedback">Please select a quadrant</div>
                     </div>
                 </form>
             </div>
