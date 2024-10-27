@@ -80,7 +80,16 @@
                         <label for="taskDueDate" class="form-label">Due Date</label>
                         <input type="date" class="form-control" id="taskDueDate" required>
                     </div>
-                    <input type="hidden" id="taskQuadrant">
+                    <div class="mb-3">
+                        <label for="taskQuadrant" class="form-label">Quadrant</label>
+                        <select class="form-select" id="taskQuadrant" required>
+                            <option value="">Select a quadrant</option>
+                            <option value="urgent-important">Urgent & Important</option>
+                            <option value="not-urgent-important">Not Urgent & Important</option>
+                            <option value="urgent-not-important">Urgent & Not Important</option>
+                            <option value="not-urgent-not-important">Not Urgent & Not Important</option>
+                        </select>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">

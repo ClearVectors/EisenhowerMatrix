@@ -165,7 +165,6 @@ function handleDrop(event) {
                 return response.json();
             })
             .then(data => {
-                console.log('Task moved successfully:', data);
                 showToast('Task moved successfully');
                 loadTasks(); // Refresh all tasks to ensure consistency
             })
@@ -184,8 +183,49 @@ function handleDrop(event) {
     return false;
 }
 
+function addTask() {
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDescription').value.trim();
+    const category = document.getElementById('taskCategory').value;
+    const dueDate = document.getElementById('taskDueDate').value;
+    const quadrant = document.getElementById('taskQuadrant').value;
+
+    if (!title || !dueDate || !quadrant) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    fetch('/tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title,
+            description,
+            category,
+            due_date: dueDate,
+            quadrant
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task added successfully');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addTaskModal'));
+        modal.hide();
+        document.getElementById('taskForm').reset();
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error adding task:', error);
+        showToast('Failed to add task', 'error');
+    });
+}
+
 function deleteTask(taskId) {
-    console.log('Deleting task:', taskId);
     if (!confirm('Are you sure you want to delete this task?')) return;
 
     fetch(`/tasks/${taskId}`, {
@@ -199,7 +239,6 @@ function deleteTask(taskId) {
         return response.json();
     })
     .then(data => {
-        console.log('Task deleted successfully:', data);
         showToast('Task deleted successfully');
         loadTasks();
     })
@@ -210,8 +249,6 @@ function deleteTask(taskId) {
 }
 
 function toggleTaskCompletion(taskId, currentStatus) {
-    console.log('Toggling task completion:', taskId, currentStatus);
-    
     fetch(`/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
@@ -226,7 +263,6 @@ function toggleTaskCompletion(taskId, currentStatus) {
         return response.json();
     })
     .then(data => {
-        console.log('Task completion toggled successfully:', data);
         showToast(`Task marked as ${!currentStatus ? 'complete' : 'incomplete'}`);
         loadTasks();
     })
@@ -237,7 +273,6 @@ function toggleTaskCompletion(taskId, currentStatus) {
 }
 
 function exportTasks() {
-    console.log('Exporting tasks...');
     window.location.href = '/tasks/export';
 }
 
@@ -261,6 +296,48 @@ function showEditTaskModal(taskId) {
 
     const editModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
     editModal.show();
+}
+
+function updateTask() {
+    const taskId = document.getElementById('editTaskId').value;
+    const title = document.getElementById('editTaskTitle').value.trim();
+    const description = document.getElementById('editTaskDescription').value.trim();
+    const category = document.getElementById('editTaskCategory').value;
+    const dueDate = document.getElementById('editTaskDueDate').value;
+    const quadrant = document.getElementById('editTaskQuadrant').value;
+
+    if (!title || !dueDate || !quadrant) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    fetch(`/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title,
+            description,
+            category,
+            due_date: dueDate,
+            quadrant
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task updated successfully');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
+        modal.hide();
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error updating task:', error);
+        showToast('Failed to update task', 'error');
+    });
 }
 
 function filterTasks(filter = 'all') {
