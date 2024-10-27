@@ -20,39 +20,29 @@
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#categoriesModal">
             <i class="bi bi-tags"></i> Categories
         </button>
-        <button type="button" class="btn btn-primary add-task-btn" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
-            </svg>
-            Add Task
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+            <i class="bi bi-plus-lg"></i> Add Task
         </button>
     </div>
 </div>
 
-<!-- Matrix Container -->
-<div class="matrix-container">
-    <!-- Urgent & Important -->
-    <div class="matrix-quadrant" id="urgent-important">
-        <h2 class="quadrant-title">Urgent & Important</h2>
-        <!-- Tasks will be loaded here -->
-    </div>
-
-    <!-- Not Urgent & Important -->
-    <div class="matrix-quadrant" id="not-urgent-important">
-        <h2 class="quadrant-title">Not Urgent & Important</h2>
-        <!-- Tasks will be loaded here -->
-    </div>
-
-    <!-- Urgent & Not Important -->
-    <div class="matrix-quadrant" id="urgent-not-important">
-        <h2 class="quadrant-title">Urgent & Not Important</h2>
-        <!-- Tasks will be loaded here -->
-    </div>
-
-    <!-- Not Urgent & Not Important -->
-    <div class="matrix-quadrant" id="not-urgent-not-important">
-        <h2 class="quadrant-title">Not Urgent & Not Important</h2>
-        <!-- Tasks will be loaded here -->
+<div id="matrix-root">
+    <div class="matrix-container">
+        <div id="urgent-important" class="matrix-quadrant" data-quadrant="urgent-important">
+            <h2 class="quadrant-title">Urgent & Important</h2>
+        </div>
+        
+        <div id="not-urgent-important" class="matrix-quadrant" data-quadrant="not-urgent-important">
+            <h2 class="quadrant-title">Not Urgent & Important</h2>
+        </div>
+        
+        <div id="urgent-not-important" class="matrix-quadrant" data-quadrant="urgent-not-important">
+            <h2 class="quadrant-title">Urgent & Not Important</h2>
+        </div>
+        
+        <div id="not-urgent-not-important" class="matrix-quadrant" data-quadrant="not-urgent-not-important">
+            <h2 class="quadrant-title">Not Urgent & Not Important</h2>
+        </div>
     </div>
 </div>
 
@@ -76,7 +66,9 @@
                     </div>
                     <div class="mb-3">
                         <label for="taskCategory" class="form-label">Category</label>
-                        <select class="form-select" id="taskCategory" required></select>
+                        <select class="form-select" id="taskCategory" required>
+                            <option value="">Select category</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label for="taskQuadrant" class="form-label">Quadrant</label>
@@ -116,9 +108,11 @@
                         <i class="bi bi-plus-lg"></i> Add Category
                     </button>
                 </div>
+                
                 <div id="categoryList" class="list-group">
                     <!-- Categories will be loaded here -->
                 </div>
+
                 <!-- Add Category Form -->
                 <div id="addCategoryForm" style="display: none;">
                     <h6 class="mb-3">Add New Category</h6>
@@ -150,6 +144,7 @@
                         </div>
                     </form>
                 </div>
+
                 <!-- Edit Category Form -->
                 <div id="editCategoryForm" style="display: none;">
                     <h6 class="mb-3">Edit Category</h6>

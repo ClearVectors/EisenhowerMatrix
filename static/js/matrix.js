@@ -1,8 +1,4 @@
-// Initialize tasks when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    loadTasks();
-});
-
+// Global tasks array
 let tasks = [];
 
 // Toast notification function
@@ -76,138 +72,32 @@ function createTaskCard(task) {
     `;
 }
 
-// Category Management Functions
-function loadCategories() {
-    const categoryList = document.getElementById('categoryList');
-    categoryList.innerHTML = '<div class="text-center"><div class="spinner-border text-secondary"></div></div>';
-
-    fetch('/categories')
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(categories => {
-            categoryList.innerHTML = categories.length ? '' : '<div class="text-center text-muted">No categories found</div>';
-            categories.forEach(category => {
-                categoryList.innerHTML += createCategoryListItem(category);
-            });
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            categoryList.innerHTML = '<div class="alert alert-danger">Failed to load categories</div>';
-            showToast('Failed to load categories', 'danger');
-        });
-}
-
-function createCategoryListItem(category) {
-    return `
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi ${category.icon}" style="color: ${category.color}"></i>
-                <span>${category.name}</span>
-            </div>
-            <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showEditCategoryForm(${category.id})">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${category.id})">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-// Category form management
-function showAddCategoryForm() {
-    document.getElementById('categoryList').style.display = 'none';
-    document.getElementById('addCategoryForm').style.display = 'block';
-}
-
-function hideAddCategoryForm() {
-    document.getElementById('categoryForm').reset();
-    document.getElementById('addCategoryForm').style.display = 'none';
-    document.getElementById('categoryList').style.display = 'block';
-}
-
-function showEditCategoryForm(categoryId) {
-    fetch(`/categories/${categoryId}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(response.status === 404 ? 'Category not found' : 'Failed to load category');
-            }
-            return response.json();
-        })
-        .then(category => {
-            document.getElementById('editCategoryId').value = category.id;
-            document.getElementById('editCategoryName').value = category.name;
-            document.getElementById('editCategoryColor').value = category.color;
-            document.getElementById('editCategoryIcon').value = category.icon;
-
-            document.getElementById('categoryList').style.display = 'none';
-            document.getElementById('editCategoryForm').style.display = 'block';
-        })
-        .catch(error => {
-            console.error('Error loading category:', error);
-            showToast(error.message, 'danger');
-        });
-}
-
-function hideEditCategoryForm() {
-    document.getElementById('editCategoryFormElement').reset();
-    document.getElementById('editCategoryForm').style.display = 'none';
-    document.getElementById('categoryList').style.display = 'block';
-}
-
-// Category CRUD operations
-function addCategory() {
-    const name = document.getElementById('categoryName').value.trim();
-    const color = document.getElementById('categoryColor').value;
-    const icon = document.getElementById('categoryIcon').value;
-
-    if (!name || !color || !icon) {
-        showToast('Please fill in all required fields', 'danger');
+// Task Management Functions
+function loadTasks() {
+    const matrixRoot = document.getElementById('matrix-root');
+    if (!matrixRoot) {
+        console.error('Matrix root element not found');
+        showToast('Error: Matrix container not found', 'danger');
         return;
     }
 
-    const addButton = document.querySelector('#addCategoryForm .btn-primary');
-    const originalText = addButton.textContent;
-    addButton.disabled = true;
-    addButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
-
-    fetch('/categories', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, color, icon })
-    })
-    .then(response => {
-        if (!response.ok) {
-            if (response.status === 400) {
-                throw new Error('Category name must be unique');
-            }
-            throw new Error('Failed to add category');
+    // Show loading state in each quadrant
+    const quadrants = ['urgent-important', 'not-urgent-important', 'urgent-not-important', 'not-urgent-not-important'];
+    quadrants.forEach(quadrant => {
+        const element = document.getElementById(quadrant);
+        if (element) {
+            const title = element.querySelector('.quadrant-title');
+            const titleHtml = title ? title.outerHTML : '';
+            element.innerHTML = `
+                ${titleHtml}
+                <div class="loading-spinner">
+                    <div class="spinner-border text-secondary"></div>
+                    <div class="loading-text">Loading tasks...</div>
+                </div>
+            `;
         }
-        return response.json();
-    })
-    .then(data => {
-        showToast('Category added successfully');
-        hideAddCategoryForm();
-        loadCategories();
-    })
-    .catch(error => {
-        console.error('Error adding category:', error);
-        showToast(error.message, 'danger');
-    })
-    .finally(() => {
-        addButton.disabled = false;
-        addButton.innerHTML = originalText;
     });
-}
 
-// Task Management Functions
-function loadTasks() {
     fetch('/tasks')
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -220,6 +110,19 @@ function loadTasks() {
         .catch(error => {
             console.error('Error loading tasks:', error);
             showToast('Failed to load tasks', 'danger');
+            quadrants.forEach(quadrant => {
+                const element = document.getElementById(quadrant);
+                if (element) {
+                    const title = element.querySelector('.quadrant-title');
+                    const titleHtml = title ? title.outerHTML : '';
+                    element.innerHTML = `
+                        ${titleHtml}
+                        <div class="alert alert-danger m-3">
+                            Failed to load tasks. Please try refreshing the page.
+                        </div>
+                    `;
+                }
+            });
         });
 }
 
@@ -231,28 +134,113 @@ function updateTasksUI(tasks) {
         'not-urgent-not-important': document.getElementById('not-urgent-not-important')
     };
 
-    // Clear existing tasks
+    // Clear existing tasks while preserving titles
     Object.values(quadrants).forEach(quadrant => {
         if (quadrant) {
             const title = quadrant.querySelector('.quadrant-title');
-            quadrant.innerHTML = '';
-            if (title) quadrant.appendChild(title);
+            quadrant.innerHTML = title ? title.outerHTML : '';
         }
     });
 
     // Add tasks to their respective quadrants
     tasks.forEach(task => {
-        if (quadrants[task.quadrant]) {
+        const quadrant = quadrants[task.quadrant];
+        if (quadrant) {
             const taskElement = document.createElement('div');
             taskElement.innerHTML = createTaskCard(task);
-            quadrants[task.quadrant].appendChild(taskElement.firstElementChild);
+            const taskCard = taskElement.firstElementChild;
+            if (taskCard) {
+                quadrant.appendChild(taskCard);
+                initializeDragAndDrop(taskCard);
+            }
+        }
+    });
+
+    // Show empty state if no tasks in quadrant
+    Object.entries(quadrants).forEach(([quadrantId, element]) => {
+        if (element) {
+            const tasks = element.querySelectorAll('.task-card');
+            if (tasks.length === 0) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'text-center text-muted py-3';
+                emptyState.innerHTML = 'No tasks yet';
+                element.appendChild(emptyState);
+            }
         }
     });
 }
 
-// Export functionality
-function exportTasks() {
-    window.location.href = '/tasks/export';
+// Initialize drag and drop
+function initializeDragAndDrop(taskElement) {
+    if (!taskElement) return;
+
+    taskElement.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
+        e.target.classList.add('dragging');
+    });
+
+    taskElement.addEventListener('dragend', (e) => {
+        e.target.classList.remove('dragging');
+    });
+}
+
+// Add Task function
+function addTask() {
+    const elements = {
+        title: document.getElementById('taskTitle'),
+        description: document.getElementById('taskDescription'),
+        category: document.getElementById('taskCategory'),
+        quadrant: document.getElementById('taskQuadrant'),
+        dueDate: document.getElementById('taskDueDate')
+    };
+
+    const data = {
+        title: elements.title?.value.trim(),
+        description: elements.description?.value.trim(),
+        category: elements.category?.value,
+        quadrant: elements.quadrant?.value,
+        due_date: elements.dueDate?.value
+    };
+
+    if (!data.title || !data.category || !data.quadrant || !data.due_date) {
+        showToast('Please fill in all required fields', 'danger');
+        return;
+    }
+
+    const addButton = document.querySelector('#addTaskModal .btn-primary');
+    if (!addButton) return;
+
+    const originalText = addButton.textContent;
+    addButton.disabled = true;
+    addButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
+
+    fetch('/tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to add task');
+        return response.json();
+    })
+    .then(task => {
+        showToast('Task added successfully');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addTaskModal'));
+        if (modal) modal.hide();
+        const taskForm = document.getElementById('taskForm');
+        if (taskForm) taskForm.reset();
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to add task: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        addButton.disabled = false;
+        addButton.innerHTML = originalText;
+    });
 }
 
 // Filter functionality
@@ -271,82 +259,105 @@ function filterTasks(filter = 'all') {
         });
 }
 
-// Add Task function
-function addTask() {
-    const title = document.getElementById('taskTitle').value.trim();
-    const description = document.getElementById('taskDescription').value.trim();
-    const category = document.getElementById('taskCategory').value;
-    const quadrant = document.getElementById('taskQuadrant').value;
-    const dueDate = document.getElementById('taskDueDate').value;
+// Export functionality
+function exportTasks() {
+    window.location.href = '/tasks/export';
+}
 
-    if (!title || !category || !quadrant || !dueDate) {
-        showToast('Please fill in all required fields', 'danger');
-        return;
-    }
+// Initialize drop zones
+function initializeDropZones() {
+    document.querySelectorAll('.matrix-quadrant').forEach(quadrant => {
+        if (!quadrant) return;
 
-    const addButton = document.querySelector('#addTaskModal .btn-primary');
-    const originalText = addButton.textContent;
-    addButton.disabled = true;
-    addButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
+        quadrant.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        });
 
-    fetch('/tasks', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            title,
-            description,
-            category,
-            quadrant,
-            due_date: dueDate
-        })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Failed to add task');
-        return response.json();
-    })
-    .then(task => {
-        showToast('Task added successfully');
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addTaskModal'));
-        modal.hide();
-        document.getElementById('taskForm').reset();
-        loadTasks();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Failed to add task: ' + error.message, 'danger');
-    })
-    .finally(() => {
-        addButton.disabled = false;
-        addButton.innerHTML = originalText;
+        quadrant.addEventListener('dragleave', (e) => {
+            e.currentTarget.classList.remove('drag-over');
+        });
+
+        quadrant.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const taskId = e.dataTransfer.getData('text/plain');
+            const newQuadrant = e.currentTarget.id;
+            
+            if (!taskId || !newQuadrant) return;
+
+            fetch(`/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ quadrant: newQuadrant })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to update task');
+                return response.json();
+            })
+            .then(() => {
+                loadTasks();
+                showToast('Task moved successfully');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Failed to move task', 'danger');
+            });
+        });
     });
 }
 
-// Initialize categories when Add Task modal is shown
-document.getElementById('addTaskModal').addEventListener('show.bs.modal', function () {
-    const categorySelect = document.getElementById('taskCategory');
-    categorySelect.innerHTML = '<option value="">Loading categories...</option>';
-    categorySelect.disabled = true;
+// Initialize application
+function initializeApp() {
+    // Initialize matrix container
+    const matrixRoot = document.getElementById('matrix-root');
+    if (!matrixRoot) {
+        console.error('Matrix root element not found');
+        showToast('Error: Matrix container not found', 'danger');
+        return;
+    }
 
-    fetch('/categories')
-        .then(response => response.json())
-        .then(categories => {
-            categorySelect.innerHTML = '<option value="">Select category</option>';
-            categories.forEach(category => {
-                categorySelect.innerHTML += `<option value="${category.name}">${category.name}</option>`;
-            });
-        })
-        .catch(error => {
-            console.error('Error loading categories:', error);
-            categorySelect.innerHTML = '<option value="">Failed to load categories</option>';
-        })
-        .finally(() => {
-            categorySelect.disabled = false;
+    // Initialize drop zones
+    initializeDropZones();
+
+    // Load initial tasks
+    loadTasks();
+    
+    // Initialize Add Task modal events
+    const addTaskModal = document.getElementById('addTaskModal');
+    if (addTaskModal) {
+        addTaskModal.addEventListener('show.bs.modal', function () {
+            const categorySelect = document.getElementById('taskCategory');
+            if (!categorySelect) return;
+
+            categorySelect.innerHTML = '<option value="">Loading categories...</option>';
+            categorySelect.disabled = true;
+
+            fetch('/categories')
+                .then(response => response.json())
+                .then(categories => {
+                    categorySelect.innerHTML = '<option value="">Select category</option>';
+                    categories.forEach(category => {
+                        categorySelect.innerHTML += `<option value="${category.name}">${category.name}</option>`;
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                    categorySelect.innerHTML = '<option value="">Failed to load categories</option>';
+                })
+                .finally(() => {
+                    categorySelect.disabled = false;
+                });
         });
-});
+    }
+}
 
-// Initialize categories when Categories modal is shown
-document.getElementById('categoriesModal').addEventListener('show.bs.modal', function () {
-    loadCategories();
-});
+// Initialize when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}
