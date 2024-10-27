@@ -128,5 +128,54 @@ body {
     border-color: rgba(255, 255, 255, 0.25);
 }
 
-/* Rest of the CSS file remains unchanged */
-[Previous CSS content from line 152 to end]
+/* Edit button specific styles */
+.edit-task-btn {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    z-index: 10;
+}
+
+.edit-task-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.category-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.category-Health {
+    background-color: var(--category-health);
+    color: white;
+}
+
+.category-Work {
+    background-color: var(--category-work);
+    color: white;
+}
+
+.category-Personal {
+    background-color: var(--category-personal);
+    color: white;
+}
+
+.category-Learning {
+    background-color: var(--category-learning);
+    color: white;
+}
+
+.category-Shopping {
+    background-color: var(--category-shopping);
+    color: white;
+}
