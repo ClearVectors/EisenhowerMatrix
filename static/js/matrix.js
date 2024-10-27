@@ -83,29 +83,29 @@ function handleDrop(event) {
 
     const newQuadrant = quadrant.querySelector('.task-list').id;
     if (draggedTask.quadrant !== newQuadrant) {
-        console.log('Moving task to new quadrant:', { taskId: draggedTask.id, newQuadrant });
+        // Update the task's quadrant locally first for immediate feedback
+        const taskElement = document.querySelector(`[data-task-id="${draggedTask.id}"]`);
+        if (taskElement) {
+            quadrant.querySelector('.task-list').appendChild(taskElement);
+        }
 
+        // Then send the update to the server
         fetch(`/tasks/${draggedTask.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                ...draggedTask,
                 quadrant: newQuadrant
             })
         })
         .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
-                });
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
         })
         .then(data => {
-            loadTasks();
             showToast('Task moved successfully');
+            loadTasks(); // Refresh all tasks to ensure consistency
         })
         .catch(error => {
             console.error('Error moving task:', error);
@@ -116,6 +116,75 @@ function handleDrop(event) {
 
     quadrant.classList.remove('drag-over');
     return false;
+}
+
+function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+
+    fetch(`/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast('Task deleted successfully');
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error deleting task:', error);
+        showToast('Failed to delete task', 'error');
+    });
+}
+
+function toggleTaskCompletion(taskId, currentStatus) {
+    fetch(`/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            completed: !currentStatus
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        showToast(`Task marked as ${!currentStatus ? 'complete' : 'incomplete'}`);
+        loadTasks();
+    })
+    .catch(error => {
+        console.error('Error updating task:', error);
+        showToast('Failed to update task status', 'error');
+    });
+}
+
+function showEditTaskModal(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+        showToast('Task not found', 'error');
+        return;
+    }
+
+    document.getElementById('editTaskId').value = task.id;
+    document.getElementById('editTaskTitle').value = task.title;
+    document.getElementById('editTaskDescription').value = task.description || '';
+    document.getElementById('editTaskCategory').value = task.category;
+    document.getElementById('editTaskQuadrant').value = task.quadrant;
+    
+    // Format date for input
+    const dueDate = new Date(task.due_date);
+    const formattedDate = dueDate.toISOString().split('T')[0];
+    document.getElementById('editTaskDueDate').value = formattedDate;
+
+    const editModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+    editModal.show();
 }
 
 function filterTasks(filter = 'all') {
@@ -143,29 +212,27 @@ function createTaskCard(task) {
                 <small class="text-muted">${formattedDueDate}</small>
             </div>
             <div class="task-actions mt-3">
-                <button class="btn btn-outline-secondary btn-sm" 
+                <button class="btn btn-outline-secondary btn-sm edit-task-btn" 
                         onclick="showEditTaskModal(${task.id})" 
                         title="Edit task">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
-                        <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
-                    </svg>
+                    <i class="bi bi-pencil"></i>
                 </button>
                 <button class="btn btn-outline-${task.completed ? 'warning' : 'success'} btn-sm" 
                         onclick="toggleTaskCompletion(${task.id}, ${task.completed})"
                         title="${task.completed ? 'Mark as incomplete' : 'Mark as complete'}">
-                    ${task.completed ? 'Undo' : 'Complete'}
+                    <i class="bi bi-${task.completed ? 'arrow-counterclockwise' : 'check-lg'}"></i>
                 </button>
                 <button class="btn btn-outline-danger btn-sm" 
                         onclick="deleteTask(${task.id})"
-                        title="Delete task">Delete</button>
+                        title="Delete task">
+                    <i class="bi bi-trash"></i>
+                </button>
             </div>
         </div>
     `;
 }
 
 function loadTasks(filter = 'all') {
-    console.log('Loading tasks with filter:', filter);
-
     const quadrants = {
         'urgent-important': document.getElementById('urgent-important'),
         'not-urgent-important': document.getElementById('not-urgent-important'),
@@ -189,7 +256,6 @@ function loadTasks(filter = 'all') {
         })
     ])
     .then(([allTasks, filteredTasks]) => {
-        console.log('Tasks loaded:', { allTasks, filteredTasks });
         tasks = allTasks;
 
         // Clear existing tasks
@@ -221,12 +287,7 @@ function loadTasks(filter = 'all') {
     });
 }
 
-function exportTasks() {
-    window.location.href = '/tasks/export?filter=all';
-}
-
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Application initialized');
     loadTasks();
 });
