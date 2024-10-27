@@ -15,11 +15,12 @@
     --category-learning: #8B5CF6;
     --category-shopping: #F97316;
     
-    /* Status colors */
-    --status-overdue: #EF4444;    /* Red */
-    --status-today: #EAB308;      /* Yellow */
-    --status-week: #3B82F6;       /* Blue */
-
+    /* Due date status colors */
+    --status-overdue: #DC2626;    /* Bright Red */
+    --status-today: #FBBF24;      /* Warm Yellow */
+    --status-this-week: #2563EB;  /* Blue */
+    --status-future: #059669;     /* Green */
+    
     /* Animation durations */
     --transition-speed: 0.2s;
 }
@@ -66,20 +67,9 @@ body {
     transform: scale(1.02);
 }
 
-.matrix-quadrant.drag-over::after {
-    content: 'Drop here';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 1.5rem;
-    color: rgba(255, 255, 255, 0.7);
-    pointer-events: none;
-}
-
 .task-card {
     background-color: rgba(30, 30, 46, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid;
     border-radius: 0.75rem;
     padding: 1.25rem;
     margin-bottom: 1rem;
@@ -87,116 +77,105 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
-    border-left-width: 6px;
     cursor: grab;
     transform-origin: center;
     will-change: transform, opacity;
 }
 
-.task-card.dragging {
-    opacity: 0.5;
-    cursor: grabbing;
-    transform: scale(0.95) rotate(-1deg);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-}
-
-.task-card.task-placeholder {
-    background-color: rgba(30, 30, 46, 0.5);
-    border-style: dashed;
-    border-width: 2px;
-    opacity: 0.7;
-    pointer-events: none;
-}
-
+/* Due date status styles */
 .task-overdue {
-    border-left-color: var(--status-overdue);
+    border-color: var(--status-overdue);
 }
 
 .task-due-today {
-    border-left-color: var(--status-today);
+    border-color: var(--status-today);
 }
 
-.task-due-week {
-    border-left-color: var(--status-week);
+.task-due-this-week {
+    border-color: var(--status-this-week);
 }
 
-.task-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05));
-    z-index: 0;
-    transition: opacity var(--transition-speed) ease;
+.task-future {
+    border-color: var(--status-future);
+}
+
+.task-completed {
+    opacity: 0.7;
+    border-style: dashed;
 }
 
 .task-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.25);
-}
-
-.task-card:hover::before {
-    opacity: 0.8;
-}
-
-.task-card h5 {
-    color: #fff;
-    margin-bottom: 0.75rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-    position: relative;
-    z-index: 1;
-}
-
-.task-card p {
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-    position: relative;
-    z-index: 1;
-}
-
-.task-actions {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-start;
-    align-items: center;
-    position: relative;
-    z-index: 2;
-    transition: opacity var(--transition-speed) ease;
-}
-
-.task-card.dragging .task-actions {
-    opacity: 0.5;
 }
 
 .category-badge {
-    padding: 0.25rem 0.75rem;
+    padding: 0.35rem 0.75rem;
     border-radius: 1rem;
     font-size: 0.8rem;
     font-weight: 500;
     transition: all var(--transition-speed) ease;
-}
-
-.category-Health { background-color: var(--category-health); color: white; }
-.category-Work { background-color: var(--category-work); color: white; }
-.category-Personal { background-color: var(--category-personal); color: white; }
-.category-Learning { background-color: var(--category-learning); color: white; }
-.category-Shopping { background-color: var(--category-shopping); color: white; }
-
-/* Loading animation */
-.task-list-loading {
-    display: flex;
-    justify-content: center;
+    display: inline-flex;
     align-items: center;
-    min-height: 100px;
+    gap: 0.5rem;
 }
 
-.spinner-border {
-    width: 2rem;
-    height: 2rem;
+/* Category styles */
+.category-Health { 
+    background-color: var(--category-health);
+    color: white;
 }
+
+.category-Work { 
+    background-color: var(--category-work);
+    color: white;
+}
+
+.category-Personal { 
+    background-color: var(--category-personal);
+    color: white;
+}
+
+.category-Learning { 
+    background-color: var(--category-learning);
+    color: white;
+}
+
+.category-Shopping { 
+    background-color: var(--category-shopping);
+    color: white;
+}
+
+/* Category icons */
+.category-icon {
+    font-size: 0.9em;
+}
+
+.task-due-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.task-due-date i {
+    font-size: 0.9em;
+}
+
+/* Status indicators */
+.status-indicator {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+}
+
+.status-overdue { background-color: var(--status-overdue); }
+.status-today { background-color: var(--status-today); }
+.status-this-week { background-color: var(--status-this-week); }
+.status-future { background-color: var(--status-future); }
