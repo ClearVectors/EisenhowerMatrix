@@ -44,9 +44,23 @@ function validateAddTaskForm() {
     const quadrant = document.getElementById('taskQuadrant').value;
     const errors = [];
 
-    if (!title) errors.push('Title is required');
-    if (!dueDate) errors.push('Due date is required');
-    if (!quadrant) errors.push('Please select a quadrant');
+    console.log('Validating form with values:', { title, dueDate, quadrant });
+
+    // Reset previous validation state
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+    if (!title) {
+        errors.push('Title is required');
+        document.getElementById('taskTitle').classList.add('is-invalid');
+    }
+    if (!dueDate) {
+        errors.push('Due date is required');
+        document.getElementById('taskDueDate').classList.add('is-invalid');
+    }
+    if (!quadrant) {
+        errors.push('Please select a quadrant');
+        document.getElementById('taskQuadrant').classList.add('is-invalid');
+    }
 
     return errors;
 }
@@ -57,6 +71,14 @@ function addTask() {
     const category = document.getElementById('taskCategory').value;
     const dueDate = document.getElementById('taskDueDate').value;
     const quadrant = document.getElementById('taskQuadrant').value;
+
+    console.log('Adding task with values:', {
+        title,
+        description,
+        category,
+        dueDate,
+        quadrant
+    });
 
     const errors = validateAddTaskForm();
     if (errors.length > 0) {
@@ -83,7 +105,9 @@ function addTask() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            });
         }
         return response.json();
     })
@@ -91,6 +115,7 @@ function addTask() {
         if (data.error) {
             throw new Error(data.error);
         }
+        console.log('Task added successfully:', data);
         showToast('Task added successfully');
         const modal = bootstrap.Modal.getInstance(document.getElementById('addTaskModal'));
         modal.hide();
